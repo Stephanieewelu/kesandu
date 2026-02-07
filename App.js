@@ -10,7 +10,7 @@ import * as Haptics from 'expo-haptics';
 import {
   Brain, CheckCircle, Zap, X, Send,
   Play, ChevronRight, Briefcase, Target,
-  RotateCcw,
+  RotateCcw, Award, Star, BookOpen, TrendingUp,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -36,23 +36,53 @@ const THEME = {
   muted: '#666666',
   text: '#FFFFFF',
   textSoft: '#CCCCCC',
+  guruGlow: '#FFB800',
 };
 
 // ============================================================================
-// 2. CONTENT DATABASE (Enhanced with weights, synonyms, reading levels)
+// 2. GURU RANK SYSTEM
+// ============================================================================
+
+const GURU_RANKS = [
+  { title: 'Curious Mind', minXP: 0, color: '#888888', icon: '?' },
+  { title: 'AI Apprentice', minXP: 100, color: '#00D9FF', icon: '>' },
+  { title: 'Pattern Seeker', minXP: 350, color: '#00FF9D', icon: '^' },
+  { title: 'Neural Thinker', minXP: 700, color: '#FF8C00', icon: '*' },
+  { title: 'AI Guru', minXP: 1200, color: '#FFD700', icon: '#' },
+  { title: 'Grand Guru', minXP: 2000, color: '#FF00FF', icon: '!' },
+];
+
+function getGuruRank(totalXP) {
+  let rank = GURU_RANKS[0];
+  for (const r of GURU_RANKS) {
+    if (totalXP >= r.minXP) rank = r;
+  }
+  return rank;
+}
+
+function getNextRank(totalXP) {
+  for (const r of GURU_RANKS) {
+    if (totalXP < r.minXP) return r;
+  }
+  return null;
+}
+
+// ============================================================================
+// 3. AI-FOCUSED CONTENT DATABASE
 // ============================================================================
 
 const CONTENT_DATA = [
   {
     id: '1',
     youtubeId: 'zjkBMFhNj_g',
-    title: 'Large Language Models',
+    title: 'How LLMs Work',
     creator: '@karpathy',
-    category: 'AI Engineering',
+    category: 'AI Foundations',
     xp: 300,
+    guruTitle: 'LLM Guru',
     applicationScenario: {
       role: 'AI Consultant',
-      context: 'A law firm wants to replace paralegals with an LLM. They trust it blindly.',
+      context: 'A law firm wants to replace paralegals with an LLM. They trust it blindly. You must explain the limitations.',
     },
     challenges: [
       {
@@ -102,7 +132,7 @@ const CONTENT_DATA = [
           { term: 'embedding', hint: 'Say "turning words into numbers" if needed.' },
           { term: 'neural', hint: 'Say "brain" or "smart computer" instead.' },
           { term: 'algorithm', hint: 'Say "recipe" or "set of steps" instead.' },
-          { term: 'parameter', hint: 'Skip this — too technical for a 5-year-old.' },
+          { term: 'parameter', hint: 'Skip this \u2014 too technical for a 5-year-old.' },
         ],
         min_word_count: 20,
         max_reading_level: 7,
@@ -114,18 +144,275 @@ const CONTENT_DATA = [
   },
   {
     id: '2',
-    youtubeId: 'HkdAHXoRtos',
-    title: 'Git Version Control',
-    creator: '@fireship',
-    category: 'DevOps',
-    xp: 250,
+    youtubeId: 'aircAruvnKk',
+    title: 'Neural Networks',
+    creator: '@3blue1brown',
+    category: 'AI Foundations',
+    xp: 300,
+    guruTitle: 'Neural Net Guru',
     applicationScenario: {
-      role: 'Lead Developer',
-      context: 'A junior dev deleted a branch. They think the code is gone forever.',
+      role: 'ML Engineer',
+      context: 'Your CEO says "just add more layers" to fix a failing model. You need to explain why that might not help.',
     },
     challenges: [
       {
         id: 'c2_1',
+        type: 'CONCEPT_CHECK',
+        title: 'Layers & Learning',
+        prompt: 'What does a hidden layer in a neural network actually do? How does it learn?',
+        initialAiMessage: "I heard neural networks have layers like a cake. Does each layer memorize different facts?",
+        required_concepts: [
+          [
+            { term: 'weight', synonyms: ['weights', 'parameters', 'connections', 'adjusts', 'adjust'], weight: 3 },
+            { term: 'activation', synonyms: ['activations', 'neurons fire', 'output signal', 'nonlinear'], weight: 2 },
+          ],
+          [
+            { term: 'feature', synonyms: ['features', 'representation', 'abstract', 'pattern', 'patterns', 'detect'], weight: 3 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 15,
+        max_reading_level: null,
+        xp_reward: 150,
+        partial_xp_reward: 60,
+        hint: 'Think about how each layer transforms data and detects patterns.',
+      },
+      {
+        id: 'c2_2',
+        type: 'TEACH_BACK',
+        title: 'ELI5: Neural Nets',
+        prompt: 'Explain neural networks to someone who has never coded. Use a real-world analogy.',
+        initialAiMessage: "I'm a chef. I don't know what code is. How does the computer learn to recognize a cat photo?",
+        required_concepts: [
+          [
+            { term: 'like a', synonyms: ['imagine', 'pretend', 'think of', 'similar to', 'just like', 'same as', 'recipe'], weight: 3 },
+          ],
+          [
+            { term: 'learn', synonyms: ['learns', 'learning', 'practice', 'practices', 'improve', 'improves', 'gets better', 'trains'], weight: 3 },
+          ],
+        ],
+        forbidden_terms: [
+          { term: 'backpropagation', hint: 'Say "learning from mistakes" instead.' },
+          { term: 'gradient descent', hint: 'Say "adjusting step by step" instead.' },
+          { term: 'matrix', hint: 'Skip this \u2014 say "grid of numbers" if needed.' },
+          { term: 'tensor', hint: 'Way too technical. Skip it.' },
+          { term: 'epoch', hint: 'Say "round of practice" instead.' },
+          { term: 'loss function', hint: 'Say "score card" or "mistake counter" instead.' },
+        ],
+        min_word_count: 20,
+        max_reading_level: 7,
+        xp_reward: 150,
+        partial_xp_reward: 60,
+        hint: 'Compare it to learning a skill through repetition and feedback.',
+      },
+    ],
+  },
+  {
+    id: '3',
+    youtubeId: 'wjZofJX0v4M',
+    title: 'Transformer Architecture',
+    creator: '@3blue1brown',
+    category: 'AI Deep Dive',
+    xp: 350,
+    guruTitle: 'Transformer Guru',
+    applicationScenario: {
+      role: 'AI Architect',
+      context: 'Your team wants to build a custom model. They ask: should we use RNNs or Transformers? You need to explain the key difference.',
+    },
+    challenges: [
+      {
+        id: 'c3_1',
+        type: 'CONCEPT_CHECK',
+        title: 'Attention Mechanism',
+        prompt: 'What is "attention" in transformers? Why was it a breakthrough over previous approaches?',
+        initialAiMessage: "I know transformers replaced older models. But what exactly is 'attention' and why does it matter?",
+        required_concepts: [
+          [
+            { term: 'attention', synonyms: ['self-attention', 'attends to', 'focus on', 'focuses on', 'looks at all', 'weighs'], weight: 3 },
+          ],
+          [
+            { term: 'parallel', synonyms: ['simultaneously', 'all at once', 'at the same time', 'concurrent', 'not sequential'], weight: 3 },
+            { term: 'context', synonyms: ['relationship', 'relationships', 'connections', 'relevant', 'relevance', 'related words'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 20,
+        max_reading_level: null,
+        xp_reward: 175,
+        partial_xp_reward: 70,
+        hint: 'Think about how attention lets the model look at ALL words at once, not one by one.',
+      },
+      {
+        id: 'c3_2',
+        type: 'TEACH_BACK',
+        title: 'ELI5: Attention',
+        prompt: 'Explain the attention mechanism to a high school student. No math, just intuition.',
+        initialAiMessage: "I'm in 10th grade. I heard AI uses 'attention' but that sounds like a human thing. What does it mean for a computer?",
+        required_concepts: [
+          [
+            { term: 'important', synonyms: ['matters', 'relevant', 'focus', 'focuses', 'pay attention', 'which parts'], weight: 3 },
+          ],
+          [
+            { term: 'word', synonyms: ['words', 'sentence', 'text', 'meaning', 'reads'], weight: 1 },
+          ],
+        ],
+        forbidden_terms: [
+          { term: 'query key value', hint: 'Say "the model asks what\'s important" instead.' },
+          { term: 'softmax', hint: 'Way too mathy. Say "picks the most relevant parts."' },
+          { term: 'dot product', hint: 'Say "measures similarity" or "compares words."' },
+          { term: 'multihead', hint: 'Say "looks at things from different angles."' },
+          { term: 'positional encoding', hint: 'Say "knows the order of words."' },
+        ],
+        min_word_count: 20,
+        max_reading_level: 9,
+        xp_reward: 175,
+        partial_xp_reward: 70,
+        hint: 'Compare it to highlighting the most important words in a sentence.',
+      },
+    ],
+  },
+  {
+    id: '4',
+    youtubeId: '_bvrzYOA8dY',
+    title: 'Prompt Engineering',
+    creator: '@fireship',
+    category: 'AI Skills',
+    xp: 250,
+    guruTitle: 'Prompt Guru',
+    applicationScenario: {
+      role: 'AI Product Manager',
+      context: 'Your team is getting inconsistent outputs from GPT-4. Users complain the chatbot gives random answers. You need to fix the prompting strategy.',
+    },
+    challenges: [
+      {
+        id: 'c4_1',
+        type: 'CONCEPT_CHECK',
+        title: 'Prompt Design',
+        prompt: 'Why does prompt structure matter? What makes a good prompt vs a bad one?',
+        initialAiMessage: "I just type whatever I want into ChatGPT. Sometimes it works, sometimes it doesn't. Isn't it just luck?",
+        required_concepts: [
+          [
+            { term: 'specific', synonyms: ['specificity', 'clear', 'clarity', 'precise', 'detailed', 'explicit', 'instructions'], weight: 3 },
+          ],
+          [
+            { term: 'context', synonyms: ['background', 'role', 'system prompt', 'examples', 'few-shot', 'few shot'], weight: 3 },
+            { term: 'structure', synonyms: ['structured', 'format', 'template', 'framework', 'step by step', 'chain of thought'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 15,
+        max_reading_level: null,
+        xp_reward: 125,
+        partial_xp_reward: 50,
+        hint: 'Think about clarity, context-setting, and structured output.',
+      },
+      {
+        id: 'c4_2',
+        type: 'TEACH_BACK',
+        title: 'ELI5: Prompting',
+        prompt: 'Explain why prompt engineering matters to someone who just uses ChatGPT casually.',
+        initialAiMessage: "I just ask ChatGPT stuff and it answers. Why would I need to learn special ways to ask?",
+        required_concepts: [
+          [
+            { term: 'ask', synonyms: ['question', 'request', 'tell', 'instruct', 'describe', 'explain to'], weight: 2 },
+          ],
+          [
+            { term: 'better', synonyms: ['improved', 'accurate', 'useful', 'helpful', 'quality', 'good'], weight: 2 },
+            { term: 'answer', synonyms: ['response', 'output', 'result', 'reply', 'results'], weight: 1 },
+          ],
+        ],
+        forbidden_terms: [
+          { term: 'token', hint: 'Say "word" or "piece of text" instead.' },
+          { term: 'temperature', hint: 'Say "randomness setting" or just "creativity dial."' },
+          { term: 'embedding', hint: 'Way too technical. Skip it.' },
+          { term: 'latent space', hint: 'No one casually knows this. Skip it.' },
+        ],
+        min_word_count: 20,
+        max_reading_level: 8,
+        xp_reward: 125,
+        partial_xp_reward: 50,
+        hint: 'Compare it to asking a really smart person a vague question vs a specific one.',
+      },
+    ],
+  },
+  {
+    id: '5',
+    youtubeId: 'jGwO_UgTS7I',
+    title: 'AI Hallucinations',
+    creator: '@IBMTechnology',
+    category: 'AI Safety',
+    xp: 300,
+    guruTitle: 'AI Safety Guru',
+    applicationScenario: {
+      role: 'AI Safety Officer',
+      context: 'A medical startup wants to use AI to diagnose patients. The AI sometimes confidently gives wrong answers. You must explain the risk.',
+    },
+    challenges: [
+      {
+        id: 'c5_1',
+        type: 'CONCEPT_CHECK',
+        title: 'Why AI Lies',
+        prompt: 'Why do LLMs "hallucinate"? Why do they state false things with confidence?',
+        initialAiMessage: "The AI sounded so sure when it gave a wrong answer. Does it know it's lying?",
+        required_concepts: [
+          [
+            { term: 'confidence', synonyms: ['confident', 'certainty', 'sure', 'convincing', 'plausible', 'fluent'], weight: 2 },
+            { term: 'no understanding', synonyms: ['doesnt understand', 'no knowledge', 'not aware', 'no awareness', 'doesnt know', 'cant tell'], weight: 3 },
+          ],
+          [
+            { term: 'training data', synonyms: ['trained on', 'learned from', 'data it saw', 'patterns in data', 'statistical'], weight: 3 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 15,
+        max_reading_level: null,
+        xp_reward: 150,
+        partial_xp_reward: 60,
+        hint: "The model doesn't 'know' truth from fiction \u2014 it generates plausible-sounding text.",
+      },
+      {
+        id: 'c5_2',
+        type: 'TEACH_BACK',
+        title: 'ELI5: Hallucinations',
+        prompt: 'Explain AI hallucinations to a non-technical manager who trusts ChatGPT completely.',
+        initialAiMessage: "ChatGPT is always right though, isn't it? It sounds so professional. Why would I double-check it?",
+        required_concepts: [
+          [
+            { term: 'make up', synonyms: ['makes up', 'invents', 'fabricates', 'creates', 'generates', 'guesses', 'fills in gaps'], weight: 3 },
+          ],
+          [
+            { term: 'check', synonyms: ['verify', 'double check', 'fact check', 'confirm', 'validate', 'review', 'trust but verify'], weight: 3 },
+          ],
+        ],
+        forbidden_terms: [
+          { term: 'hallucinate', hint: 'They won\'t understand this term. Say "makes things up" or "invents facts."' },
+          { term: 'stochastic', hint: 'Say "random" or "unpredictable" instead.' },
+          { term: 'inference', hint: 'Say "when it generates an answer" instead.' },
+          { term: 'token', hint: 'Say "word" or "text" instead.' },
+        ],
+        min_word_count: 20,
+        max_reading_level: 8,
+        xp_reward: 150,
+        partial_xp_reward: 60,
+        hint: 'Compare it to a confident student who makes up an answer rather than saying "I don\'t know."',
+      },
+    ],
+  },
+  {
+    id: '6',
+    youtubeId: 'HkdAHXoRtos',
+    title: 'Git for AI Projects',
+    creator: '@fireship',
+    category: 'AI Tooling',
+    xp: 200,
+    guruTitle: 'Version Control Guru',
+    applicationScenario: {
+      role: 'ML Ops Engineer',
+      context: 'A junior ML engineer deleted a model training branch. They think the code and experiment results are gone forever.',
+    },
+    challenges: [
+      {
+        id: 'c6_1',
         type: 'CONCEPT_CHECK',
         title: 'Mental Model',
         prompt: 'Explain the difference between a Branch and a Commit Reference.',
@@ -141,30 +428,31 @@ const CONTENT_DATA = [
         forbidden_terms: [],
         min_word_count: 15,
         max_reading_level: null,
-        xp_reward: 125,
-        partial_xp_reward: 50,
+        xp_reward: 100,
+        partial_xp_reward: 40,
         hint: 'A branch is just a movable pointer to a commit.',
       },
     ],
   },
   {
-    id: '3',
+    id: '7',
     youtubeId: 'Tn6-PIqc4UM',
-    title: 'React Fundamentals',
+    title: 'React for AI Apps',
     creator: '@fireship',
-    category: 'Web Dev',
+    category: 'AI Tooling',
     xp: 250,
+    guruTitle: 'AI Frontend Guru',
     applicationScenario: {
-      role: 'Performance Engineer',
-      context: 'A React app freezes on every keystroke. Users are complaining.',
+      role: 'AI Frontend Engineer',
+      context: 'You\'re building a ChatGPT-like interface. The app freezes on every keystroke while streaming AI responses. Users are complaining.',
     },
     challenges: [
       {
-        id: 'c3_1',
+        id: 'c7_1',
         type: 'CONCEPT_CHECK',
         title: 'Virtual DOM',
-        prompt: 'Why do we need a Virtual DOM? Why is direct DOM manipulation slow?',
-        initialAiMessage: 'The browser already has a DOM. Why add another layer? Isn\'t that making things slower?',
+        prompt: 'Why do we need a Virtual DOM? Why is direct DOM manipulation slow for AI chat UIs?',
+        initialAiMessage: "The browser already has a DOM. Why add another layer? Isn't that making things slower?",
         required_concepts: [
           [
             { term: 'batch', synonyms: ['batching', 'batches', 'groups', 'combines', 'collects', 'gathers'], weight: 3 },
@@ -182,11 +470,11 @@ const CONTENT_DATA = [
         hint: "Talk about 'batching' updates or 'diffing' changes.",
       },
       {
-        id: 'c3_2',
+        id: 'c7_2',
         type: 'TEACH_BACK',
         title: 'ELI5: React',
-        prompt: 'Explain React re-rendering to someone who only knows HTML.',
-        initialAiMessage: 'I know HTML. I make web pages. Why do I need this React thing? My pages work fine.',
+        prompt: 'Explain React re-rendering to someone who only knows HTML and wants to build AI tools.',
+        initialAiMessage: "I know HTML. I make web pages. Why do I need this React thing to build an AI chatbot?",
         required_concepts: [
           [
             { term: 'update', synonyms: ['updates', 'changes', 'change', 'refresh', 'modify', 'auto'], weight: 3 },
@@ -198,7 +486,7 @@ const CONTENT_DATA = [
         forbidden_terms: [
           { term: 'virtual dom', hint: 'Just say "it keeps a draft copy" or "blueprint".' },
           { term: 'reconciliation', hint: 'Way too technical. Say "figures out what changed".' },
-          { term: 'fiber', hint: 'Skip this — say "it works in small steps".' },
+          { term: 'fiber', hint: 'Skip this \u2014 say "it works in small steps".' },
           { term: 'jsx', hint: 'Say "HTML-like code" or "template".' },
         ],
         min_word_count: 20,
@@ -212,16 +500,13 @@ const CONTENT_DATA = [
 ];
 
 // ============================================================================
-// 3. SEMANTIC VALIDATION ENGINE
+// 4. SEMANTIC VALIDATION ENGINE
 // ============================================================================
 
-// ── Lightweight Stemmer ─────────────────────────────────────
-// Reduces words to rough root forms for better fuzzy matching.
-// Handles common English suffixes — not perfect, but effective for
-// matching "predicting" → "predict", "batches" → "batch", etc.
+// -- Lightweight Stemmer --
 
 const STEM_SUFFIXES = [
-  'ingly', 'ingly', 'ation', 'ment', 'ness', 'able', 'ible',
+  'ingly', 'ation', 'ment', 'ness', 'able', 'ible',
   'ting', 'ing', 'ies', 'ied', 'ion', 'ous', 'ive',
   'ly', 'ed', 'er', 'es', 'al', 'en',
   's',
@@ -238,7 +523,7 @@ function stem(word) {
   return w;
 }
 
-// ── Text Processing ─────────────────────────────────────────
+// -- Text Processing --
 
 function normalize(text) {
   return text
@@ -253,11 +538,6 @@ function tokenize(text) {
   return normalize(text).split(' ').filter(Boolean);
 }
 
-/**
- * Builds unigrams, bigrams, and trigrams for multi-word phrase matching.
- * Also builds a parallel set of stemmed n-grams for fuzzy matching.
- * e.g. ["next", "token"] → Set includes "next", "token", "next token"
- */
 function buildNGrams(tokens, maxN = 3) {
   const grams = new Set();
   const stemmedGrams = new Set();
@@ -275,7 +555,7 @@ function buildNGrams(tokens, maxN = 3) {
   return { exact: grams, stemmed: stemmedGrams };
 }
 
-// ── Flesch-Kincaid Reading Level ────────────────────────────
+// -- Flesch-Kincaid Reading Level --
 
 function countSyllables(word) {
   const w = word.toLowerCase().replace(/[^a-z]/g, '');
@@ -298,38 +578,26 @@ function computeReadingLevel(text) {
   const avgWordsPerSentence = words.length / sentences.length;
   const avgSyllablesPerWord = totalSyllables / words.length;
 
-  // Flesch-Kincaid Grade Level formula
   const grade = 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
   return Math.max(0, Math.round(grade * 10) / 10);
 }
 
-// ── Concept Matching (with stemmed fallback) ────────────────
+// -- Concept Matching (with stemmed fallback) --
 
-/**
- * Checks if a concept term (or any of its synonyms) is present in the
- * user's input n-grams. Uses exact match first, then falls back to
- * stemmed comparison for morphological variants.
- *
- * Returns: the matched surface form (string) or null.
- */
 function conceptPresent(conceptObj, ngrams) {
   const normalizedTerm = normalize(conceptObj.term);
 
-  // Exact match (highest confidence)
   if (ngrams.exact.has(normalizedTerm)) return conceptObj.term;
 
-  // Check synonyms exact
   if (conceptObj.synonyms) {
     for (const syn of conceptObj.synonyms) {
       if (ngrams.exact.has(normalize(syn))) return syn;
     }
   }
 
-  // Stemmed fallback for the primary term
   const stemmedTerm = normalizedTerm.split(' ').map(stem).join(' ');
   if (ngrams.stemmed.has(stemmedTerm)) return conceptObj.term;
 
-  // Stemmed fallback for synonyms
   if (conceptObj.synonyms) {
     for (const syn of conceptObj.synonyms) {
       const stemmedSyn = normalize(syn).split(' ').map(stem).join(' ');
@@ -340,15 +608,6 @@ function conceptPresent(conceptObj, ngrams) {
   return null;
 }
 
-/**
- * Matches user input against concept groups (AND-of-OR structure).
- *
- * Each group is an array of concept alternatives (OR — at least one must match).
- * All groups must be satisfied for a perfect score (AND across groups).
- *
- * Within each group, the highest-weight matched concept determines the
- * earned weight for that group.
- */
 function matchConceptGroups(conceptGroups, ngrams) {
   const results = [];
 
@@ -380,7 +639,7 @@ function matchConceptGroups(conceptGroups, ngrams) {
   return results;
 }
 
-// ── Forbidden Term Detection ────────────────────────────────
+// -- Forbidden Term Detection --
 
 function detectForbiddenTerms(normalizedText, forbiddenTerms) {
   if (!forbiddenTerms || forbiddenTerms.length === 0) return [];
@@ -394,9 +653,7 @@ function detectForbiddenTerms(normalizedText, forbiddenTerms) {
   return violations;
 }
 
-// ── Depth Heuristic ─────────────────────────────────────────
-// Awards a small bonus (0-10 pts) for answers that show reasoning
-// depth: causal connectives, examples, and elaboration.
+// -- Depth Heuristic --
 
 const DEPTH_MARKERS = [
   'because', 'therefore', 'since', 'so that', 'this means',
@@ -410,11 +667,10 @@ function computeDepthBonus(normalizedText) {
   for (const marker of DEPTH_MARKERS) {
     if (normalizedText.includes(marker)) hits++;
   }
-  // Cap at 10 bonus points (diminishing returns after 5 markers)
   return Math.min(10, hits * 2);
 }
 
-// ── Main Evaluation Function ────────────────────────────────
+// -- Main Evaluation Function --
 
 const PASS_THRESHOLD = 70;
 const PARTIAL_THRESHOLD = 40;
@@ -427,14 +683,14 @@ const MIN_WORDS_SCORE_CAP = 30;
  *
  * Pipeline:
  *   1. Normalize + tokenize + build n-grams (exact & stemmed)
- *   2. Word count gate (too short → score capped at 30)
+ *   2. Word count gate (too short -> score capped at 30)
  *   3. Forbidden term scan (TEACH_BACK: -15 per jargon word)
  *   4. Concept matching (nested AND/OR with weighted scoring + stemmed fallback)
- *   5. Depth bonus (causal connectives / examples → up to +10)
+ *   5. Depth bonus (causal connectives / examples -> up to +10)
  *   6. Reading level check (TEACH_BACK: -20 if too complex)
- *   7. Weighted score → pass / partial / fail
+ *   7. Weighted score -> pass / partial / fail
  *
- * Thresholds: ≥70 PASS, 40-69 PARTIAL, <40 FAIL
+ * Thresholds: >=70 PASS, 40-69 PARTIAL, <40 FAIL
  */
 function evaluateAnswer(input, challenge) {
   const normalizedInput = normalize(input);
@@ -443,17 +699,17 @@ function evaluateAnswer(input, challenge) {
   const feedback = [];
   const isTeachBack = challenge.type === 'TEACH_BACK';
 
-  // ── Step 1: Word Count Gate ───────────────────────────
+  // Step 1: Word Count Gate
   const minWords = challenge.min_word_count || 10;
   const wordCountPassed = tokens.length >= minWords;
 
   if (!wordCountPassed) {
     feedback.push(
-      `Too brief — ${tokens.length} words. Aim for at least ${minWords} to show understanding.`
+      `Too brief \u2014 ${tokens.length} words. Aim for at least ${minWords} to show understanding.`
     );
   }
 
-  // ── Step 2: Forbidden Terms (TEACH_BACK only) ─────────
+  // Step 2: Forbidden Terms (TEACH_BACK only)
   const forbiddenViolations = isTeachBack
     ? detectForbiddenTerms(normalizedInput, challenge.forbidden_terms)
     : [];
@@ -465,7 +721,7 @@ function evaluateAnswer(input, challenge) {
     }
   }
 
-  // ── Step 3: Concept Matching (with stemmed fallback) ──
+  // Step 3: Concept Matching (with stemmed fallback)
   const conceptResults = matchConceptGroups(challenge.required_concepts, ngrams);
 
   const totalWeight = conceptResults.reduce((sum, c) => sum + c.maxWeight, 0);
@@ -485,10 +741,10 @@ function evaluateAnswer(input, challenge) {
     feedback.push('\u2705 All key concepts covered!');
   }
 
-  // ── Step 4: Depth Bonus ─────────────────────────────
+  // Step 4: Depth Bonus
   const depthBonus = computeDepthBonus(normalizedInput);
 
-  // ── Step 5: Reading Level (TEACH_BACK only) ───────────
+  // Step 5: Reading Level (TEACH_BACK only)
   let readingLevelResult = null;
   if (isTeachBack && challenge.max_reading_level != null && tokens.length >= 10) {
     const actualLevel = computeReadingLevel(input);
@@ -502,26 +758,22 @@ function evaluateAnswer(input, challenge) {
     }
   }
 
-  // ── Step 6: Score Calculation ─────────────────────────
+  // Step 6: Score Calculation
   let baseScore = totalWeight > 0 ? (matchedWeight / totalWeight) * 100 : 0;
-
-  // Add depth bonus (capped so it can't push above 100 after penalties)
   baseScore = Math.min(100, baseScore + depthBonus);
 
-  // Apply penalties
   const forbiddenPenalty = forbiddenViolations.length * FORBIDDEN_PENALTY;
   const readingPenalty = readingLevelResult && !readingLevelResult.passed ? READING_LEVEL_PENALTY : 0;
 
   let finalScore = baseScore - forbiddenPenalty - readingPenalty;
 
-  // Word count gate: cap score if too short
   if (!wordCountPassed) {
     finalScore = Math.min(finalScore, MIN_WORDS_SCORE_CAP);
   }
 
   finalScore = Math.max(0, Math.min(100, Math.round(finalScore)));
 
-  // ── Step 7: Determine Result ──────────────────────────
+  // Step 7: Determine Result
   let passed = false;
   let xpEarned = 0;
   let status = 'FAIL';
@@ -559,7 +811,7 @@ function evaluateAnswer(input, challenge) {
 }
 
 // ============================================================================
-// 4. XP PERSISTENCE HOOK
+// 5. XP PERSISTENCE HOOK
 // ============================================================================
 
 const STORAGE_KEY = '@kesandu_guru_xp';
@@ -619,14 +871,20 @@ function useXP() {
   const nextLevelXP = xpForLevel(level);
   const isComplete = useCallback((id) => completedChallenges.includes(id), [completedChallenges]);
 
-  return { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded };
+  const getModuleProgress = useCallback((moduleItem) => {
+    const total = moduleItem.challenges.length;
+    const done = moduleItem.challenges.filter(c => completedChallenges.includes(c.id)).length;
+    return { done, total, isGuru: done === total && total > 0 };
+  }, [completedChallenges]);
+
+  return { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress };
 }
 
 // ============================================================================
-// 5. COMPONENTS
+// 6. COMPONENTS
 // ============================================================================
 
-// ── Score Bar Component ─────────────────────────────────────
+// -- Score Bar Component --
 
 const ScoreBar = ({ score, status }) => {
   const barWidth = useRef(new Animated.Value(0)).current;
@@ -666,7 +924,7 @@ const ScoreBar = ({ score, status }) => {
   );
 };
 
-// ── Concept Breakdown Component ─────────────────────────────
+// -- Concept Breakdown Component --
 
 const ConceptBreakdown = ({ breakdown }) => {
   if (!breakdown) return null;
@@ -682,12 +940,11 @@ const ConceptBreakdown = ({ breakdown }) => {
             {c.matchedTerm ? ` \u2014 "${c.matchedTerm}"` : ' \u2014 not detected'}
           </Text>
           <View style={[styles.weightBadge, { opacity: c.weight / 3 }]}>
-            <Text style={styles.weightText}>\u00D7{c.weight}</Text>
+            <Text style={styles.weightText}>{'\u00D7'}{c.weight}</Text>
           </View>
         </View>
       ))}
 
-      {/* Word count */}
       <View style={styles.breakdownRow}>
         <Text style={{ fontSize: 14 }}>{breakdown.wordCount.passed ? '\u2705' : '\u26A0\uFE0F'}</Text>
         <Text style={styles.breakdownText}>
@@ -695,7 +952,6 @@ const ConceptBreakdown = ({ breakdown }) => {
         </Text>
       </View>
 
-      {/* Depth bonus */}
       {breakdown.depthBonus > 0 && (
         <View style={styles.breakdownRow}>
           <Text style={{ fontSize: 14 }}>{'\uD83E\uDDE0'}</Text>
@@ -705,7 +961,6 @@ const ConceptBreakdown = ({ breakdown }) => {
         </View>
       )}
 
-      {/* Reading level */}
       {breakdown.readingLevel && (
         <View style={styles.breakdownRow}>
           <Text style={{ fontSize: 14 }}>{breakdown.readingLevel.passed ? '\u2705' : '\u26A0\uFE0F'}</Text>
@@ -715,7 +970,6 @@ const ConceptBreakdown = ({ breakdown }) => {
         </View>
       )}
 
-      {/* Forbidden violations */}
       {breakdown.forbidden.length > 0 && (
         <>
           <Text style={[styles.breakdownTitle, { marginTop: 10, color: THEME.danger }]}>
@@ -735,7 +989,78 @@ const ConceptBreakdown = ({ breakdown }) => {
   );
 };
 
-// ── Chat Engine Component ───────────────────────────────────
+// -- Guru Badge Component --
+
+const GuruBadge = ({ guruTitle, isGuru, progress }) => {
+  const glowAnim = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    if (isGuru) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowAnim, { toValue: 1, duration: 1200, useNativeDriver: false }),
+          Animated.timing(glowAnim, { toValue: 0.4, duration: 1200, useNativeDriver: false }),
+        ])
+      ).start();
+    }
+  }, [isGuru, glowAnim]);
+
+  if (isGuru) {
+    return (
+      <Animated.View style={[styles.guruBadge, { opacity: glowAnim }]}>
+        <Award size={12} color={THEME.guru} />
+        <Text style={styles.guruBadgeText}>{guruTitle}</Text>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <View style={styles.progressBadge}>
+      <Text style={styles.progressBadgeText}>
+        {progress.done}/{progress.total} mastered
+      </Text>
+    </View>
+  );
+};
+
+// -- Guru Celebration Overlay --
+
+const GuruCelebration = ({ visible, guruTitle, onDismiss }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 3, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+    } else {
+      scaleAnim.setValue(0);
+      opacityAnim.setValue(0);
+    }
+  }, [visible, scaleAnim, opacityAnim]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View style={[styles.celebrationOverlay, { opacity: opacityAnim }]}>
+      <Animated.View style={[styles.celebrationCard, { transform: [{ scale: scaleAnim }] }]}>
+        <Award size={48} color={THEME.guru} />
+        <Text style={styles.celebrationTitle}>GURU UNLOCKED</Text>
+        <Text style={styles.celebrationSubtitle}>{guruTitle}</Text>
+        <Text style={styles.celebrationDesc}>
+          You've mastered all challenges for this topic. You are now a certified guru!
+        </Text>
+        <TouchableOpacity style={styles.celebrationBtn} onPress={onDismiss}>
+          <Text style={styles.celebrationBtnText}>CONTINUE</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    </Animated.View>
+  );
+};
+
+// -- Chat Engine Component --
 
 const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
   const [history, setHistory] = useState([
@@ -823,7 +1148,6 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-      {/* Header */}
       <View style={styles.chatHeader}>
         <TouchableOpacity onPress={onExit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <X size={24} color="#FFF" />
@@ -837,21 +1161,18 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Challenge prompt */}
       <View style={styles.briefBox}>
         <Target size={14} color={THEME.primary} />
         <Text style={styles.briefText}>{challenge.prompt}</Text>
       </View>
 
-      {/* Already complete banner */}
       {isAlreadyComplete && (
         <View style={styles.completeBanner}>
           <CheckCircle size={14} color={THEME.success} />
-          <Text style={styles.completeBannerText}>Already completed — practice mode (no XP)</Text>
+          <Text style={styles.completeBannerText}>Already completed \u2014 practice mode (no XP)</Text>
         </View>
       )}
 
-      {/* Messages */}
       <FlatList
         ref={listRef}
         data={history}
@@ -864,17 +1185,16 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
       {isAiTyping && (
         <View style={styles.typingIndicator}>
           <ActivityIndicator size="small" color={THEME.primary} />
-          <Text style={styles.typingText}>Evaluating...</Text>
+          <Text style={styles.typingText}>Evaluating your knowledge...</Text>
         </View>
       )}
 
-      {/* Input / Action area */}
       <KeyboardAvoidingView behavior={IS_IOS ? 'padding' : 'height'}>
         {status === 'ACTIVE' ? (
           <View style={styles.inputBar}>
             <TextInput
               style={styles.input}
-              placeholder="Type your explanation..."
+              placeholder="Prove your understanding..."
               placeholderTextColor={THEME.muted}
               value={input}
               onChangeText={setInput}
@@ -927,15 +1247,7 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
   );
 };
 
-// ── Video Feed Item (Memoized with optimized YouTube Player) ────────────────
-//
-// Key optimizations:
-// 1. YoutubePlayer only mounts when `isActive` is true — off-screen items
-//    render a lightweight placeholder, avoiding iframe overhead entirely.
-// 2. `playerParams` and `webViewProps` are module-level constants (not per-render).
-// 3. `React.memo` with a strict comparator prevents re-renders unless the item
-//    changes identity or active state flips.
-// 4. `onStateChange` is a stable useCallback that doesn't depend on mutable state.
+// -- Video Feed Item (Memoized with optimized YouTube Player) --
 
 const PLAYER_PARAMS = Object.freeze({
   controls: false,
@@ -951,11 +1263,10 @@ const WEBVIEW_PROPS = Object.freeze({
 });
 
 const VideoFeedItem = React.memo(
-  ({ item, isActive, onEnter }) => {
+  ({ item, isActive, onEnter, moduleProgress }) => {
     const [playing, setPlaying] = useState(false);
     const [isReady, setIsReady] = useState(false);
 
-    // Sync play state to visibility — pause when scrolled away
     useEffect(() => {
       if (isActive) {
         setPlaying(true);
@@ -965,7 +1276,6 @@ const VideoFeedItem = React.memo(
       }
     }, [isActive]);
 
-    // Stable callback — no deps that change across renders
     const onStateChange = useCallback((state) => {
       if (state === 'playing') setIsReady(true);
       if (state === 'ended') setPlaying(false);
@@ -976,7 +1286,6 @@ const VideoFeedItem = React.memo(
 
     return (
       <View style={{ width, height, backgroundColor: '#000' }}>
-        {/* Player — only mount the iframe for the active (visible) item */}
         {isActive ? (
           <View style={styles.videoContainer}>
             <YoutubePlayer
@@ -1001,41 +1310,85 @@ const VideoFeedItem = React.memo(
           </View>
         )}
 
-        {/* Overlay info */}
         <View style={styles.overlay}>
           <View style={styles.overlayContent}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{item.category}</Text>
+            <View style={styles.categoryRow}>
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryText}>{item.category}</Text>
+              </View>
+              <GuruBadge
+                guruTitle={item.guruTitle}
+                isGuru={moduleProgress.isGuru}
+                progress={moduleProgress}
+              />
             </View>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.creator}>{item.creator}</Text>
+
+            {/* Progress bar for this module */}
+            <View style={styles.moduleProgressRow}>
+              <View style={styles.moduleProgressTrack}>
+                <View
+                  style={[
+                    styles.moduleProgressFill,
+                    {
+                      width: `${moduleProgress.total > 0 ? (moduleProgress.done / moduleProgress.total) * 100 : 0}%`,
+                      backgroundColor: moduleProgress.isGuru ? THEME.guru : THEME.primary,
+                    },
+                  ]}
+                />
+              </View>
+              <Text style={[
+                styles.moduleProgressText,
+                moduleProgress.isGuru && { color: THEME.guru },
+              ]}>
+                {moduleProgress.isGuru
+                  ? 'GURU'
+                  : `${moduleProgress.done}/${moduleProgress.total}`}
+              </Text>
+            </View>
+
             <Text style={styles.challengeCount}>
               {item.challenges.length} challenge{item.challenges.length > 1 ? 's' : ''} {'\u2022'} +{item.xp} XP
             </Text>
-            <TouchableOpacity style={styles.dojoBtn} onPress={handleEnter}>
+
+            <TouchableOpacity
+              style={[
+                styles.dojoBtn,
+                moduleProgress.isGuru && styles.dojoBtnGuru,
+              ]}
+              onPress={handleEnter}
+            >
               <Brain size={20} color="#000" />
-              <Text style={styles.dojoBtnText}>ENTER DOJO</Text>
+              <Text style={styles.dojoBtnText}>
+                {moduleProgress.isGuru ? 'REVIEW DOJO' : 'ENTER DOJO'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
     );
   },
-  // Strict comparator: only re-render when item identity or active state changes
-  (prev, next) => prev.item.id === next.item.id && prev.isActive === next.isActive
+  (prev, next) =>
+    prev.item.id === next.item.id &&
+    prev.isActive === next.isActive &&
+    prev.moduleProgress.done === next.moduleProgress.done
 );
 
 // ============================================================================
-// 6. MAIN APP
+// 7. MAIN APP
 // ============================================================================
 
 export default function App() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeModule, setActiveModule] = useState(null);
   const [activeChallenge, setActiveChallenge] = useState(null);
-  const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded } = useXP();
+  const [showCelebration, setShowCelebration] = useState(null);
+  const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress } = useXP();
 
-  // Stable viewability config — must not change between renders
+  const guruRank = getGuruRank(totalXP);
+  const nextRank = getNextRank(totalXP);
+
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 70,
     minimumViewTime: 300,
@@ -1067,6 +1420,20 @@ export default function App() {
     }
     setActiveChallenge(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+    // Check if this completion unlocks guru status for the module
+    setTimeout(() => {
+      for (const mod of CONTENT_DATA) {
+        const allDone = mod.challenges.every(
+          c => c.id === challengeId || isComplete(c.id)
+        );
+        if (allDone && mod.challenges.some(c => c.id === challengeId)) {
+          setShowCelebration(mod.guruTitle);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          break;
+        }
+      }
+    }, 500);
   }, [awardXP, isComplete]);
 
   const handleChallengeExit = useCallback(() => setActiveChallenge(null), []);
@@ -1076,16 +1443,20 @@ export default function App() {
       item={item}
       isActive={index === activeIndex && !activeModule && !activeChallenge}
       onEnter={handleOpenModule}
+      moduleProgress={getModuleProgress(item)}
     />
-  ), [activeIndex, activeModule, activeChallenge, handleOpenModule]);
+  ), [activeIndex, activeModule, activeChallenge, handleOpenModule, getModuleProgress]);
 
   const levelProgress = nextLevelXP > 0 ? Math.min(1, currentLevelXP / nextLevelXP) : 0;
+
+  // Count total guru badges earned
+  const guruCount = CONTENT_DATA.filter(m => getModuleProgress(m).isGuru).length;
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* ── VIDEO FEED ─────────────────────────────────── */}
+      {/* VIDEO FEED */}
       <FlatList
         data={CONTENT_DATA}
         keyExtractor={item => item.id}
@@ -1104,15 +1475,24 @@ export default function App() {
         initialNumToRender={1}
       />
 
-      {/* ── HUD OVERLAY ────────────────────────────────── */}
+      {/* HUD OVERLAY */}
       <SafeAreaView style={styles.hud} pointerEvents="box-none">
         <View style={styles.hudLeft}>
           <Text style={styles.logo}>KESANDU</Text>
+          <Text style={styles.logoSubtitle}>GURU</Text>
         </View>
         <View style={styles.hudRight}>
+          {/* Guru rank badge */}
+          <View style={[styles.rankBadge, { borderColor: guruRank.color }]}>
+            <Text style={[styles.rankText, { color: guruRank.color }]}>
+              {guruRank.title}
+            </Text>
+          </View>
+          {/* Level badge */}
           <View style={styles.levelBadge}>
             <Text style={styles.levelNumber}>{level}</Text>
           </View>
+          {/* XP progress */}
           <View style={styles.xpSection}>
             <View style={styles.xpBarTrack}>
               <View style={[styles.xpBarFill, { width: `${levelProgress * 100}%` }]} />
@@ -1125,7 +1505,15 @@ export default function App() {
         </View>
       </SafeAreaView>
 
-      {/* ── MODULE DETAIL MODAL ────────────────────────── */}
+      {/* Guru count indicator */}
+      {guruCount > 0 && (
+        <View style={styles.guruCountBadge}>
+          <Award size={14} color={THEME.guru} />
+          <Text style={styles.guruCountText}>{guruCount}/{CONTENT_DATA.length}</Text>
+        </View>
+      )}
+
+      {/* MODULE DETAIL MODAL */}
       <Modal visible={!!activeModule} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.chatHeader}>
@@ -1135,6 +1523,28 @@ export default function App() {
             </TouchableOpacity>
           </View>
           <ScrollView style={{ padding: 20 }}>
+            {/* Module guru progress */}
+            {activeModule && (
+              <View style={styles.moduleGuruHeader}>
+                <Award
+                  size={20}
+                  color={getModuleProgress(activeModule).isGuru ? THEME.guru : THEME.muted}
+                />
+                <Text style={[
+                  styles.moduleGuruTitle,
+                  getModuleProgress(activeModule).isGuru && { color: THEME.guru },
+                ]}>
+                  {activeModule.guruTitle}
+                </Text>
+                <Text style={styles.moduleGuruStatus}>
+                  {getModuleProgress(activeModule).isGuru
+                    ? 'MASTERED'
+                    : `${getModuleProgress(activeModule).done}/${getModuleProgress(activeModule).total} complete`}
+                </Text>
+              </View>
+            )}
+
+            {/* Scenario card */}
             <View style={styles.scenarioCard}>
               <View style={styles.scenarioHeader}>
                 <Briefcase size={16} color={THEME.warning} />
@@ -1170,11 +1580,21 @@ export default function App() {
                 </TouchableOpacity>
               );
             })}
+
+            {/* Next rank teaser */}
+            {nextRank && (
+              <View style={styles.nextRankCard}>
+                <TrendingUp size={16} color={nextRank.color} />
+                <Text style={styles.nextRankText}>
+                  Next rank: <Text style={{ color: nextRank.color, fontWeight: 'bold' }}>{nextRank.title}</Text> at {nextRank.minXP} XP
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       </Modal>
 
-      {/* ── CHAT ARENA MODAL ───────────────────────────── */}
+      {/* CHAT ARENA MODAL */}
       <Modal visible={!!activeChallenge} animationType="slide">
         {activeChallenge && (
           <ChatEngine
@@ -1185,18 +1605,25 @@ export default function App() {
           />
         )}
       </Modal>
+
+      {/* GURU CELEBRATION OVERLAY */}
+      <GuruCelebration
+        visible={!!showCelebration}
+        guruTitle={showCelebration || ''}
+        onDismiss={() => setShowCelebration(null)}
+      />
     </View>
   );
 }
 
 // ============================================================================
-// 7. STYLES
+// 8. STYLES
 // ============================================================================
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
 
-  // ── Video Feed ──────────────────────────────────────────
+  // -- Video Feed --
   videoContainer: {
     width,
     height,
@@ -1231,13 +1658,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   overlayContent: { gap: 6 },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   categoryBadge: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    marginBottom: 4,
   },
   categoryText: {
     color: '#DDD',
@@ -1249,6 +1681,29 @@ const styles = StyleSheet.create({
   title: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
   creator: { color: '#CCC', fontSize: 15 },
   challengeCount: { color: '#999', fontSize: 13 },
+  moduleProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginVertical: 4,
+  },
+  moduleProgressTrack: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  moduleProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  moduleProgressText: {
+    color: THEME.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    minWidth: 35,
+  },
   dojoBtn: {
     flexDirection: 'row',
     backgroundColor: THEME.primary,
@@ -1259,9 +1714,12 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 8,
   },
-  dojoBtnText: { fontWeight: 'bold', fontSize: 16 },
+  dojoBtnGuru: {
+    backgroundColor: THEME.guru,
+  },
+  dojoBtnText: { fontWeight: 'bold', fontSize: 16, color: '#000' },
 
-  // ── HUD ─────────────────────────────────────────────────
+  // -- HUD --
   hud: {
     position: 'absolute',
     top: 0,
@@ -1283,6 +1741,25 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 18,
     letterSpacing: 3,
+  },
+  logoSubtitle: {
+    color: THEME.guru,
+    fontWeight: '800',
+    fontSize: 10,
+    letterSpacing: 4,
+    marginTop: -2,
+  },
+  rankBadge: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  rankText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   levelBadge: {
     width: 28,
@@ -1324,7 +1801,109 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // ── Chat ────────────────────────────────────────────────
+  // -- Guru count badge --
+  guruCountBadge: {
+    position: 'absolute',
+    bottom: 30,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  guruCountText: {
+    color: THEME.guru,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  // -- Guru Badge --
+  guruBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.4)',
+  },
+  guruBadgeText: {
+    color: THEME.guru,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  progressBadge: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  progressBadgeText: {
+    color: '#999',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  // -- Celebration --
+  celebrationOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  celebrationCard: {
+    backgroundColor: '#111',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    width: width * 0.85,
+    borderWidth: 2,
+    borderColor: THEME.guru,
+  },
+  celebrationTitle: {
+    color: THEME.guru,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginTop: 16,
+  },
+  celebrationSubtitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  celebrationDesc: {
+    color: '#AAA',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 12,
+  },
+  celebrationBtn: {
+    backgroundColor: THEME.guru,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 30,
+    marginTop: 24,
+  },
+  celebrationBtnText: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+
+  // -- Chat --
   chatHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1455,7 +2034,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 
-  // ── Score & Breakdown ───────────────────────────────────
+  // -- Score & Breakdown --
   scoreBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1534,8 +2113,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // ── Module Modal ────────────────────────────────────────
+  // -- Module Modal --
   modalContainer: { flex: 1, backgroundColor: '#000' },
+  moduleGuruHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderColor: THEME.border,
+  },
+  moduleGuruTitle: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    flex: 1,
+  },
+  moduleGuruStatus: {
+    color: THEME.muted,
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
   scenarioCard: {
     backgroundColor: 'rgba(255, 214, 0, 0.06)',
     padding: 18,
@@ -1594,4 +2194,21 @@ const styles = StyleSheet.create({
   indexNumber: { fontWeight: 'bold', fontSize: 14 },
   challengeTitle: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
   challengeType: { color: '#888', fontSize: 12, marginTop: 2 },
+  nextRankCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    padding: 16,
+    borderRadius: 14,
+    marginTop: 20,
+    marginBottom: 40,
+    borderWidth: 1,
+    borderColor: THEME.border,
+  },
+  nextRankText: {
+    color: '#AAA',
+    fontSize: 13,
+    flex: 1,
+  },
 });
