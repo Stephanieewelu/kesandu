@@ -3,24 +3,51 @@
     "name": "Kesandu Guru",
     "slug": "kesandu-guru",
     "version": "1.0.0",
+    "description": "Master AI concepts through video lessons, interactive challenges, and real-world application scenarios. Learn to understand, teach, and apply AI knowledge.",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kesandu.guru"
+      "bundleIdentifier": "com.kesandu.guru",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoadsInWebContent": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.kesandu.guru"
+      "package": "com.kesandu.guru",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-haptics"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "kesandu-guru"
+      }
+    },
+    "owner": "kesandu",
+    "scheme": "kesandu-guru",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }

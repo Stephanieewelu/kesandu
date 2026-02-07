@@ -10,10 +10,25 @@ import * as Haptics from 'expo-haptics';
 import {
   Brain, CheckCircle, Zap, X, Send,
   Play, ChevronRight, Briefcase, Target,
-  RotateCcw, Award, Star, BookOpen, TrendingUp,
+  RotateCcw, Award, Star, BookOpen, TrendingUp, Settings,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubePlayer from 'react-native-youtube-iframe';
+import ErrorBoundary from './src/components/ErrorBoundary';
+import OnboardingScreen from './src/screens/OnboardingScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import {
+  GURU_RANKS, getGuruRank, getNextRank,
+  stem, normalize, tokenize, buildNGrams,
+  countSyllables, computeReadingLevel,
+  conceptPresent, matchConceptGroups,
+  detectForbiddenTerms, DEPTH_MARKERS, computeDepthBonus,
+  computeWhyDepthScore, detectAnalogyUse, computeAnalogyBonus,
+  computeContrastBonus,
+  PASS_THRESHOLD, PARTIAL_THRESHOLD, FORBIDDEN_PENALTY,
+  READING_LEVEL_PENALTY, MIN_WORDS_SCORE_CAP, evaluateAnswer,
+  xpForLevel, computeLevel,
+} from './utils';
 
 const { width, height } = Dimensions.get('window');
 const IS_IOS = Platform.OS === 'ios';
@@ -40,35 +55,7 @@ const THEME = {
 };
 
 // ============================================================================
-// 2. GURU RANK SYSTEM
-// ============================================================================
-
-const GURU_RANKS = [
-  { title: 'Curious Mind', minXP: 0, color: '#888888', icon: '?' },
-  { title: 'AI Apprentice', minXP: 100, color: '#00D9FF', icon: '>' },
-  { title: 'Pattern Seeker', minXP: 350, color: '#00FF9D', icon: '^' },
-  { title: 'Neural Thinker', minXP: 700, color: '#FF8C00', icon: '*' },
-  { title: 'AI Guru', minXP: 1200, color: '#FFD700', icon: '#' },
-  { title: 'Grand Guru', minXP: 2000, color: '#FF00FF', icon: '!' },
-];
-
-function getGuruRank(totalXP) {
-  let rank = GURU_RANKS[0];
-  for (const r of GURU_RANKS) {
-    if (totalXP >= r.minXP) rank = r;
-  }
-  return rank;
-}
-
-function getNextRank(totalXP) {
-  for (const r of GURU_RANKS) {
-    if (totalXP < r.minXP) return r;
-  }
-  return null;
-}
-
-// ============================================================================
-// 3. AI-FOCUSED CONTENT DATABASE
+// 2. AI-FOCUSED CONTENT DATABASE
 // ============================================================================
 
 const CONTENT_DATA = [
@@ -78,7 +65,7 @@ const CONTENT_DATA = [
     title: 'How LLMs Work',
     creator: '@karpathy',
     category: 'AI Foundations',
-    xp: 300,
+    xp: 500,
     guruTitle: 'LLM Guru',
     applicationScenario: {
       role: 'AI Consultant',
@@ -140,6 +127,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 60,
         hint: "Use an analogy (e.g., 'auto-complete' or 'guessing game'). Don't use big words.",
       },
+      {
+        id: 'c1_3',
+        type: 'APPLY',
+        title: 'Real-World: Law Firm Risk',
+        prompt: 'A law firm wants to replace paralegals with an LLM. They trust it blindly. As their AI consultant, explain specifically WHY this is risky and WHAT could go wrong.',
+        initialAiMessage: "We just got GPT-4 access! We're firing our paralegals next week. The AI can do legal research perfectly, right? What could go wrong?",
+        required_concepts: [
+          [
+            { term: 'hallucinate', synonyms: ['hallucination', 'make up', 'makes up', 'invents', 'fabricates', 'wrong', 'incorrect', 'false', 'inaccurate'], weight: 3 },
+          ],
+          [
+            { term: 'verify', synonyms: ['check', 'review', 'validate', 'double check', 'fact check', 'human review', 'oversight'], weight: 3 },
+          ],
+          [
+            { term: 'liability', synonyms: ['risk', 'danger', 'harm', 'lawsuit', 'malpractice', 'consequence', 'responsible', 'legal risk'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 200,
+        partial_xp_reward: 80,
+        hint: 'Think about hallucinations, legal liability, and why human oversight is critical.',
+      },
     ],
   },
   {
@@ -148,7 +159,7 @@ const CONTENT_DATA = [
     title: 'Neural Networks',
     creator: '@3blue1brown',
     category: 'AI Foundations',
-    xp: 300,
+    xp: 500,
     guruTitle: 'Neural Net Guru',
     applicationScenario: {
       role: 'ML Engineer',
@@ -205,6 +216,28 @@ const CONTENT_DATA = [
         partial_xp_reward: 60,
         hint: 'Compare it to learning a skill through repetition and feedback.',
       },
+      {
+        id: 'c2_3',
+        type: 'APPLY',
+        title: 'Real-World: Failing Model',
+        prompt: 'Your CEO says "just add more layers" to fix a failing image classifier. Explain WHY that probably won\'t work and WHAT they should actually do instead.',
+        initialAiMessage: "Our cat/dog classifier is only 60% accurate. I told the ML team to just add 50 more layers. More layers = smarter AI, right? Why are they pushing back?",
+        required_concepts: [
+          [
+            { term: 'overfit', synonyms: ['overfitting', 'memorize', 'memorizes', 'too complex', 'complexity'], weight: 3 },
+            { term: 'data', synonyms: ['training data', 'dataset', 'more data', 'data quality', 'bad data', 'not enough data'], weight: 3 },
+          ],
+          [
+            { term: 'instead', synonyms: ['should', 'better approach', 'what works', 'try', 'actually', 'the real issue', 'the problem is'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 200,
+        partial_xp_reward: 80,
+        hint: 'Think about overfitting, data quality, and why more layers can actually hurt performance.',
+      },
     ],
   },
   {
@@ -213,7 +246,7 @@ const CONTENT_DATA = [
     title: 'Transformer Architecture',
     creator: '@3blue1brown',
     category: 'AI Deep Dive',
-    xp: 350,
+    xp: 575,
     guruTitle: 'Transformer Guru',
     applicationScenario: {
       role: 'AI Architect',
@@ -269,6 +302,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 70,
         hint: 'Compare it to highlighting the most important words in a sentence.',
       },
+      {
+        id: 'c3_3',
+        type: 'APPLY',
+        title: 'Real-World: RNN vs Transformer',
+        prompt: 'Your team asks: should we use RNNs or Transformers for our chatbot? Explain WHY transformers win for this use case and WHAT makes the difference.',
+        initialAiMessage: "We have an old RNN-based chatbot. It works okay for short messages but falls apart on long conversations. Someone said transformers would fix this. Why? Aren't they just a newer version of the same thing?",
+        required_concepts: [
+          [
+            { term: 'parallel', synonyms: ['simultaneously', 'all at once', 'at the same time', 'not sequential', 'faster'], weight: 3 },
+          ],
+          [
+            { term: 'long', synonyms: ['long-range', 'distant', 'far apart', 'long conversations', 'context window', 'remembers', 'forgets'], weight: 3 },
+          ],
+          [
+            { term: 'sequential', synonyms: ['one by one', 'one at a time', 'step by step', 'slow', 'order', 'rnn limitation'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 225,
+        partial_xp_reward: 90,
+        hint: 'Think about parallelism, long-range dependencies, and why RNNs struggle with long sequences.',
+      },
     ],
   },
   {
@@ -277,7 +334,7 @@ const CONTENT_DATA = [
     title: 'Prompt Engineering',
     creator: '@fireship',
     category: 'AI Skills',
-    xp: 250,
+    xp: 425,
     guruTitle: 'Prompt Guru',
     applicationScenario: {
       role: 'AI Product Manager',
@@ -333,6 +390,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 50,
         hint: 'Compare it to asking a really smart person a vague question vs a specific one.',
       },
+      {
+        id: 'c4_3',
+        type: 'APPLY',
+        title: 'Real-World: Fix the Chatbot',
+        prompt: 'Your company chatbot gives inconsistent answers. Users are frustrated. As AI Product Manager, explain WHY the prompts are failing and WHAT specific prompting strategy you would implement.',
+        initialAiMessage: "Our customer support chatbot sometimes says we offer free returns, sometimes says we don't. Same question, different answers every time. The CEO is furious. How do we fix this?",
+        required_concepts: [
+          [
+            { term: 'system prompt', synonyms: ['system message', 'instructions', 'rules', 'constraints', 'guidelines', 'role'], weight: 3 },
+          ],
+          [
+            { term: 'consistent', synonyms: ['consistency', 'reliable', 'same answer', 'predictable', 'stable', 'repeatable'], weight: 3 },
+          ],
+          [
+            { term: 'example', synonyms: ['examples', 'few-shot', 'few shot', 'template', 'format', 'specify', 'specific'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 175,
+        partial_xp_reward: 70,
+        hint: 'Think about system prompts, few-shot examples, and why vague prompts produce vague outputs.',
+      },
     ],
   },
   {
@@ -341,7 +422,7 @@ const CONTENT_DATA = [
     title: 'AI Hallucinations',
     creator: '@IBMTechnology',
     category: 'AI Safety',
-    xp: 300,
+    xp: 500,
     guruTitle: 'AI Safety Guru',
     applicationScenario: {
       role: 'AI Safety Officer',
@@ -396,6 +477,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 60,
         hint: 'Compare it to a confident student who makes up an answer rather than saying "I don\'t know."',
       },
+      {
+        id: 'c5_3',
+        type: 'APPLY',
+        title: 'Real-World: Medical AI Risk',
+        prompt: 'A medical startup wants to use AI to diagnose patients. As their AI Safety Officer, explain WHY this is dangerous and WHAT safeguards must be in place.',
+        initialAiMessage: "We trained a GPT model on medical textbooks. It diagnosed 3 test cases correctly! We want to launch it to real patients next month. Our investors love the idea. What's the hold up?",
+        required_concepts: [
+          [
+            { term: 'wrong', synonyms: ['incorrect', 'mistake', 'error', 'misdiagnose', 'false', 'inaccurate', 'hallucinate', 'make up'], weight: 3 },
+          ],
+          [
+            { term: 'human', synonyms: ['doctor', 'physician', 'clinician', 'medical professional', 'oversight', 'review', 'verify'], weight: 3 },
+          ],
+          [
+            { term: 'harm', synonyms: ['danger', 'risk', 'death', 'injury', 'patient safety', 'lives', 'life-threatening', 'liability'], weight: 3 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 30,
+        max_reading_level: null,
+        xp_reward: 200,
+        partial_xp_reward: 80,
+        hint: 'Think about patient safety, the difference between 3 test cases vs real-world deployment, and why human oversight is non-negotiable.',
+      },
     ],
   },
   {
@@ -404,7 +509,7 @@ const CONTENT_DATA = [
     title: 'Git for AI Projects',
     creator: '@fireship',
     category: 'AI Tooling',
-    xp: 200,
+    xp: 350,
     guruTitle: 'Version Control Guru',
     applicationScenario: {
       role: 'ML Ops Engineer',
@@ -432,6 +537,27 @@ const CONTENT_DATA = [
         partial_xp_reward: 40,
         hint: 'A branch is just a movable pointer to a commit.',
       },
+      {
+        id: 'c6_2',
+        type: 'APPLY',
+        title: 'Real-World: Deleted Branch',
+        prompt: 'A junior ML engineer deleted a training branch with weeks of experiment results. They think everything is lost forever. Explain WHY the work is NOT gone and HOW to recover it.',
+        initialAiMessage: "I accidentally ran 'git branch -D experiments' and now all my training configs and results are gone! I didn't push it anywhere. It's been 2 weeks of work. Is there any way to get it back?",
+        required_concepts: [
+          [
+            { term: 'reflog', synonyms: ['ref log', 'git reflog', 'log', 'history', 'still there', 'not deleted'], weight: 3 },
+          ],
+          [
+            { term: 'commit', synonyms: ['commits', 'committed', 'hash', 'sha', 'snapshot', 'saved'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 20,
+        max_reading_level: null,
+        xp_reward: 150,
+        partial_xp_reward: 60,
+        hint: 'Git reflog keeps a record of where HEAD has been. Commits are not immediately garbage collected.',
+      },
     ],
   },
   {
@@ -440,7 +566,7 @@ const CONTENT_DATA = [
     title: 'React for AI Apps',
     creator: '@fireship',
     category: 'AI Tooling',
-    xp: 250,
+    xp: 425,
     guruTitle: 'AI Frontend Guru',
     applicationScenario: {
       role: 'AI Frontend Engineer',
@@ -495,339 +621,54 @@ const CONTENT_DATA = [
         partial_xp_reward: 50,
         hint: 'Compare it to reloading vs. surgically updating parts of the page.',
       },
+      {
+        id: 'c7_3',
+        type: 'APPLY',
+        title: 'Real-World: Freezing Chat UI',
+        prompt: 'Your ChatGPT-like interface freezes on every keystroke while streaming AI responses. Explain WHY this happens and WHAT React patterns would fix it.',
+        initialAiMessage: "Our AI chat app locks up completely when the AI is streaming a long response. Users can't even scroll or type. Our React code re-renders everything on each new token. Help!",
+        required_concepts: [
+          [
+            { term: 're-render', synonyms: ['rerender', 'rendering', 'renders', 'render cycle', 'unnecessary render', 'too many renders'], weight: 3 },
+          ],
+          [
+            { term: 'memo', synonyms: ['memoize', 'memoization', 'useMemo', 'useCallback', 'React.memo', 'cache', 'skip'], weight: 3 },
+            { term: 'virtualize', synonyms: ['virtualization', 'virtual list', 'windowing', 'FlatList', 'only visible'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 175,
+        partial_xp_reward: 70,
+        hint: 'Think about memoization (React.memo, useMemo), list virtualization, and isolating re-renders.',
+      },
     ],
   },
 ];
 
 // ============================================================================
-// 4. SEMANTIC VALIDATION ENGINE
-// ============================================================================
-
-// -- Lightweight Stemmer --
-
-const STEM_SUFFIXES = [
-  'ingly', 'ation', 'ment', 'ness', 'able', 'ible',
-  'ting', 'ing', 'ies', 'ied', 'ion', 'ous', 'ive',
-  'ly', 'ed', 'er', 'es', 'al', 'en',
-  's',
-];
-
-function stem(word) {
-  let w = word.toLowerCase();
-  if (w.length <= 3) return w;
-  for (const suffix of STEM_SUFFIXES) {
-    if (w.endsWith(suffix) && w.length - suffix.length >= 3) {
-      return w.slice(0, w.length - suffix.length);
-    }
-  }
-  return w;
-}
-
-// -- Text Processing --
-
-function normalize(text) {
-  return text
-    .toLowerCase()
-    .replace(/[''""]/g, '')
-    .replace(/[^\w\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function tokenize(text) {
-  return normalize(text).split(' ').filter(Boolean);
-}
-
-function buildNGrams(tokens, maxN = 3) {
-  const grams = new Set();
-  const stemmedGrams = new Set();
-
-  for (const token of tokens) {
-    grams.add(token);
-    stemmedGrams.add(stem(token));
-  }
-  for (let n = 2; n <= Math.min(maxN, tokens.length); n++) {
-    for (let i = 0; i <= tokens.length - n; i++) {
-      grams.add(tokens.slice(i, i + n).join(' '));
-      stemmedGrams.add(tokens.slice(i, i + n).map(stem).join(' '));
-    }
-  }
-  return { exact: grams, stemmed: stemmedGrams };
-}
-
-// -- Flesch-Kincaid Reading Level --
-
-function countSyllables(word) {
-  const w = word.toLowerCase().replace(/[^a-z]/g, '');
-  if (w.length <= 2) return 1;
-  const vowelGroups = w.match(/[aeiouy]+/g);
-  let count = vowelGroups ? vowelGroups.length : 1;
-  if (w.endsWith('e') && !w.endsWith('le') && count > 1) count--;
-  if (w.endsWith('ed') && !w.endsWith('ted') && !w.endsWith('ded')) {
-    count = Math.max(1, count - 1);
-  }
-  return Math.max(1, count);
-}
-
-function computeReadingLevel(text) {
-  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
-  const words = tokenize(text);
-  if (sentences.length === 0 || words.length === 0) return 0;
-
-  const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
-  const avgWordsPerSentence = words.length / sentences.length;
-  const avgSyllablesPerWord = totalSyllables / words.length;
-
-  const grade = 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
-  return Math.max(0, Math.round(grade * 10) / 10);
-}
-
-// -- Concept Matching (with stemmed fallback) --
-
-function conceptPresent(conceptObj, ngrams) {
-  const normalizedTerm = normalize(conceptObj.term);
-
-  if (ngrams.exact.has(normalizedTerm)) return conceptObj.term;
-
-  if (conceptObj.synonyms) {
-    for (const syn of conceptObj.synonyms) {
-      if (ngrams.exact.has(normalize(syn))) return syn;
-    }
-  }
-
-  const stemmedTerm = normalizedTerm.split(' ').map(stem).join(' ');
-  if (ngrams.stemmed.has(stemmedTerm)) return conceptObj.term;
-
-  if (conceptObj.synonyms) {
-    for (const syn of conceptObj.synonyms) {
-      const stemmedSyn = normalize(syn).split(' ').map(stem).join(' ');
-      if (ngrams.stemmed.has(stemmedSyn)) return syn;
-    }
-  }
-
-  return null;
-}
-
-function matchConceptGroups(conceptGroups, ngrams) {
-  const results = [];
-
-  for (let gi = 0; gi < conceptGroups.length; gi++) {
-    const group = conceptGroups[gi];
-    let bestMatch = null;
-
-    for (const concept of group) {
-      const match = conceptPresent(concept, ngrams);
-      if (match !== null) {
-        const weight = concept.weight || 1;
-        if (!bestMatch || weight > bestMatch.weight) {
-          bestMatch = { term: match, weight };
-        }
-      }
-    }
-
-    const groupMaxWeight = Math.max(...group.map(c => c.weight || 1));
-
-    results.push({
-      groupIndex: gi,
-      matched: bestMatch !== null,
-      matchedTerm: bestMatch?.term ?? null,
-      weight: bestMatch?.weight ?? groupMaxWeight,
-      maxWeight: groupMaxWeight,
-    });
-  }
-
-  return results;
-}
-
-// -- Forbidden Term Detection --
-
-function detectForbiddenTerms(normalizedText, forbiddenTerms) {
-  if (!forbiddenTerms || forbiddenTerms.length === 0) return [];
-  const violations = [];
-  for (const ftg of forbiddenTerms) {
-    const normalizedTerm = normalize(ftg.term);
-    if (normalizedText.includes(normalizedTerm)) {
-      violations.push({ term: ftg.term, hint: ftg.hint });
-    }
-  }
-  return violations;
-}
-
-// -- Depth Heuristic --
-
-const DEPTH_MARKERS = [
-  'because', 'therefore', 'since', 'so that', 'this means',
-  'for example', 'for instance', 'such as', 'in other words',
-  'the reason', 'which means', 'as a result', 'instead of',
-  'rather than', 'unlike', 'however', 'although',
-];
-
-function computeDepthBonus(normalizedText) {
-  let hits = 0;
-  for (const marker of DEPTH_MARKERS) {
-    if (normalizedText.includes(marker)) hits++;
-  }
-  return Math.min(10, hits * 2);
-}
-
-// -- Main Evaluation Function --
-
-const PASS_THRESHOLD = 70;
-const PARTIAL_THRESHOLD = 40;
-const FORBIDDEN_PENALTY = 15;
-const READING_LEVEL_PENALTY = 20;
-const MIN_WORDS_SCORE_CAP = 30;
-
-/**
- * The core semantic validation engine.
- *
- * Pipeline:
- *   1. Normalize + tokenize + build n-grams (exact & stemmed)
- *   2. Word count gate (too short -> score capped at 30)
- *   3. Forbidden term scan (TEACH_BACK: -15 per jargon word)
- *   4. Concept matching (nested AND/OR with weighted scoring + stemmed fallback)
- *   5. Depth bonus (causal connectives / examples -> up to +10)
- *   6. Reading level check (TEACH_BACK: -20 if too complex)
- *   7. Weighted score -> pass / partial / fail
- *
- * Thresholds: >=70 PASS, 40-69 PARTIAL, <40 FAIL
- */
-function evaluateAnswer(input, challenge) {
-  const normalizedInput = normalize(input);
-  const tokens = tokenize(input);
-  const ngrams = buildNGrams(tokens);
-  const feedback = [];
-  const isTeachBack = challenge.type === 'TEACH_BACK';
-
-  // Step 1: Word Count Gate
-  const minWords = challenge.min_word_count || 10;
-  const wordCountPassed = tokens.length >= minWords;
-
-  if (!wordCountPassed) {
-    feedback.push(
-      `Too brief \u2014 ${tokens.length} words. Aim for at least ${minWords} to show understanding.`
-    );
-  }
-
-  // Step 2: Forbidden Terms (TEACH_BACK only)
-  const forbiddenViolations = isTeachBack
-    ? detectForbiddenTerms(normalizedInput, challenge.forbidden_terms)
-    : [];
-
-  if (forbiddenViolations.length > 0) {
-    feedback.push('\uD83C\uDFAF Jargon detected! Keep it simple:');
-    for (const v of forbiddenViolations) {
-      feedback.push(` \u2022 "${v.term}" \u2192 ${v.hint}`);
-    }
-  }
-
-  // Step 3: Concept Matching (with stemmed fallback)
-  const conceptResults = matchConceptGroups(challenge.required_concepts, ngrams);
-
-  const totalWeight = conceptResults.reduce((sum, c) => sum + c.maxWeight, 0);
-  const matchedWeight = conceptResults
-    .filter(c => c.matched)
-    .reduce((sum, c) => sum + c.weight, 0);
-
-  const missedGroups = conceptResults.filter(c => !c.matched);
-  if (missedGroups.length > 0) {
-    feedback.push(
-      `You covered ${conceptResults.length - missedGroups.length}/${conceptResults.length} key concept areas.`
-    );
-    if (challenge.hint) {
-      feedback.push(`\uD83D\uDCA1 Hint: ${challenge.hint}`);
-    }
-  } else {
-    feedback.push('\u2705 All key concepts covered!');
-  }
-
-  // Step 4: Depth Bonus
-  const depthBonus = computeDepthBonus(normalizedInput);
-
-  // Step 5: Reading Level (TEACH_BACK only)
-  let readingLevelResult = null;
-  if (isTeachBack && challenge.max_reading_level != null && tokens.length >= 10) {
-    const actualLevel = computeReadingLevel(input);
-    const passed = actualLevel <= challenge.max_reading_level;
-    readingLevelResult = { actual: actualLevel, max: challenge.max_reading_level, passed };
-
-    if (!passed) {
-      feedback.push(
-        `\uD83D\uDCD6 Language too complex (grade ${actualLevel}). Use shorter sentences and simpler words \u2014 aim for grade ${challenge.max_reading_level} or lower.`
-      );
-    }
-  }
-
-  // Step 6: Score Calculation
-  let baseScore = totalWeight > 0 ? (matchedWeight / totalWeight) * 100 : 0;
-  baseScore = Math.min(100, baseScore + depthBonus);
-
-  const forbiddenPenalty = forbiddenViolations.length * FORBIDDEN_PENALTY;
-  const readingPenalty = readingLevelResult && !readingLevelResult.passed ? READING_LEVEL_PENALTY : 0;
-
-  let finalScore = baseScore - forbiddenPenalty - readingPenalty;
-
-  if (!wordCountPassed) {
-    finalScore = Math.min(finalScore, MIN_WORDS_SCORE_CAP);
-  }
-
-  finalScore = Math.max(0, Math.min(100, Math.round(finalScore)));
-
-  // Step 7: Determine Result
-  let passed = false;
-  let xpEarned = 0;
-  let status = 'FAIL';
-
-  const xpReward = challenge.xp_reward || 100;
-  const partialXP = challenge.partial_xp_reward || Math.round(xpReward * 0.4);
-
-  if (finalScore >= PASS_THRESHOLD) {
-    passed = true;
-    xpEarned = xpReward;
-    status = 'PASS';
-    feedback.unshift(`\uD83D\uDD25 GURU STATUS ACHIEVED \u2014 Score: ${finalScore}/100`);
-  } else if (finalScore >= PARTIAL_THRESHOLD) {
-    xpEarned = partialXP;
-    status = 'PARTIAL';
-    feedback.unshift(`\u26A1 Almost! Score: ${finalScore}/100 \u2014 Partial XP earned. Try again for full credit!`);
-  } else {
-    feedback.unshift(`\uD83D\uDCAA Score: ${finalScore}/100 \u2014 Re-watch the video and try again.`);
-  }
-
-  return {
-    passed,
-    score: finalScore,
-    xpEarned,
-    status,
-    feedback,
-    breakdown: {
-      concepts: conceptResults,
-      forbidden: forbiddenViolations,
-      wordCount: { actual: tokens.length, required: minWords, passed: wordCountPassed },
-      readingLevel: readingLevelResult,
-      depthBonus,
-    },
-  };
-}
-
-// ============================================================================
-// 5. XP PERSISTENCE HOOK
+// 3. XP PERSISTENCE HOOK
 // ============================================================================
 
 const STORAGE_KEY = '@kesandu_guru_xp';
+const ONBOARDING_KEY = '@kesandu_onboarding_done';
 
-function xpForLevel(level) {
-  return Math.floor(100 * Math.pow(1.4, level - 1));
-}
+function useOnboarding() {
+  const [hasOnboarded, setHasOnboarded] = useState(null);
 
-function computeLevel(totalXP) {
-  let level = 1;
-  let accumulated = 0;
-  while (accumulated + xpForLevel(level) <= totalXP) {
-    accumulated += xpForLevel(level);
-    level++;
-  }
-  return level;
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY).then(val => {
+      setHasOnboarded(val === 'true');
+    }).catch(() => setHasOnboarded(false));
+  }, []);
+
+  const completeOnboarding = useCallback(async () => {
+    setHasOnboarded(true);
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true').catch(() => {});
+  }, []);
+
+  return { hasOnboarded, completeOnboarding };
 }
 
 function useXP() {
@@ -961,6 +802,33 @@ const ConceptBreakdown = ({ breakdown }) => {
         </View>
       )}
 
+      {breakdown.whyDepthBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={{ fontSize: 14 }}>{'\uD83D\uDD0D'}</Text>
+          <Text style={styles.breakdownText}>
+            Why-depth bonus: +{Math.min(10, breakdown.whyDepthBonus)} pts
+          </Text>
+        </View>
+      )}
+
+      {breakdown.analogyBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={{ fontSize: 14 }}>{'\uD83C\uDF1F'}</Text>
+          <Text style={styles.breakdownText}>
+            Analogy bonus: +{breakdown.analogyBonus} pts
+          </Text>
+        </View>
+      )}
+
+      {breakdown.contrastBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={{ fontSize: 14 }}>{'\uD83E\uDD14'}</Text>
+          <Text style={styles.breakdownText}>
+            Critical thinking bonus: +{breakdown.contrastBonus} pts
+          </Text>
+        </View>
+      )}
+
       {breakdown.readingLevel && (
         <View style={styles.breakdownRow}>
           <Text style={{ fontSize: 14 }}>{breakdown.readingLevel.passed ? '\u2705' : '\u26A0\uFE0F'}</Text>
@@ -1052,7 +920,7 @@ const GuruCelebration = ({ visible, guruTitle, onDismiss }) => {
         <Text style={styles.celebrationDesc}>
           You've mastered all challenges for this topic. You are now a certified guru!
         </Text>
-        <TouchableOpacity style={styles.celebrationBtn} onPress={onDismiss}>
+        <TouchableOpacity style={styles.celebrationBtn} onPress={onDismiss} accessibilityRole="button" accessibilityLabel="Continue after guru unlock">
           <Text style={styles.celebrationBtnText}>CONTINUE</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -1149,13 +1017,13 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
       <View style={styles.chatHeader}>
-        <TouchableOpacity onPress={onExit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity onPress={onExit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close challenge">
           <X size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{challenge.type.replace('_', ' ')}</Text>
           <Text style={styles.headerSubtitle}>
-            {challenge.type === 'TEACH_BACK' ? '\uD83C\uDF93 Feynman Mode' : '\uD83E\uDDEA Accuracy Mode'}
+            {challenge.type === 'TEACH_BACK' ? '\uD83C\uDF93 Feynman Mode' : challenge.type === 'APPLY' ? '\uD83D\uDCBC Apply Mode' : '\uD83E\uDDEA Accuracy Mode'}
           </Text>
         </View>
         <View style={{ width: 24 }} />
@@ -1205,6 +1073,8 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
               style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
               onPress={handleSend}
               disabled={!input.trim() || isAiTyping}
+              accessibilityRole="button"
+              accessibilityLabel="Send your answer"
             >
               <Send size={20} color={input.trim() ? '#000' : '#666'} />
             </TouchableOpacity>
@@ -1212,7 +1082,7 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
         ) : (
           <View style={styles.actionBar}>
             {(status === 'FAIL' || status === 'PARTIAL') && (
-              <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
+              <TouchableOpacity style={styles.retryBtn} onPress={handleRetry} accessibilityRole="button" accessibilityLabel="Try challenge again">
                 <RotateCcw size={18} color={THEME.textSoft} />
                 <Text style={styles.retryBtnText}>Try Again</Text>
               </TouchableOpacity>
@@ -1358,6 +1228,8 @@ const VideoFeedItem = React.memo(
                 moduleProgress.isGuru && styles.dojoBtnGuru,
               ]}
               onPress={handleEnter}
+              accessibilityRole="button"
+              accessibilityLabel={moduleProgress.isGuru ? `Review ${item.title} dojo` : `Enter ${item.title} dojo`}
             >
               <Brain size={20} color="#000" />
               <Text style={styles.dojoBtnText}>
@@ -1379,15 +1251,29 @@ const VideoFeedItem = React.memo(
 // 7. MAIN APP
 // ============================================================================
 
-export default function App() {
+function AppContent() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeModule, setActiveModule] = useState(null);
   const [activeChallenge, setActiveChallenge] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
   const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress } = useXP();
+  const { hasOnboarded, completeOnboarding } = useOnboarding();
 
   const guruRank = getGuruRank(totalXP);
   const nextRank = getNextRank(totalXP);
+
+  if (hasOnboarded === null || !loaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#00D9FF" />
+      </View>
+    );
+  }
+
+  if (!hasOnboarded) {
+    return <OnboardingScreen onComplete={completeOnboarding} />;
+  }
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 70,
@@ -1478,8 +1364,14 @@ export default function App() {
       {/* HUD OVERLAY */}
       <SafeAreaView style={styles.hud} pointerEvents="box-none">
         <View style={styles.hudLeft}>
-          <Text style={styles.logo}>KESANDU</Text>
-          <Text style={styles.logoSubtitle}>GURU</Text>
+          <TouchableOpacity
+            onPress={() => setShowSettings(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+          >
+            <Text style={styles.logo}>KESANDU</Text>
+            <Text style={styles.logoSubtitle}>GURU</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.hudRight}>
           {/* Guru rank badge */}
@@ -1518,7 +1410,7 @@ export default function App() {
         <View style={styles.modalContainer}>
           <View style={styles.chatHeader}>
             <Text style={styles.headerTitle}>TRAINING MODULE</Text>
-            <TouchableOpacity onPress={handleCloseModule}>
+            <TouchableOpacity onPress={handleCloseModule} accessibilityRole="button" accessibilityLabel="Close training module">
               <X size={24} color="#FFF" />
             </TouchableOpacity>
           </View>
@@ -1572,7 +1464,7 @@ export default function App() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.challengeTitle}>{c.title}</Text>
                     <Text style={styles.challengeType}>
-                      {c.type === 'TEACH_BACK' ? '\uD83C\uDF93 Teach Back' : '\uD83E\uDDEA Concept Check'}
+                      {c.type === 'TEACH_BACK' ? '\uD83C\uDF93 Teach Back' : c.type === 'APPLY' ? '\uD83D\uDCBC Apply It' : '\uD83E\uDDEA Concept Check'}
                       {' \u2022 '}+{c.xp_reward} XP
                     </Text>
                   </View>
@@ -1612,7 +1504,24 @@ export default function App() {
         guruTitle={showCelebration || ''}
         onDismiss={() => setShowCelebration(null)}
       />
+
+      {/* SETTINGS MODAL */}
+      <Modal visible={showSettings} animationType="slide">
+        <SettingsScreen
+          onClose={() => setShowSettings(false)}
+          totalXP={totalXP}
+          level={level}
+        />
+      </Modal>
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }
 
