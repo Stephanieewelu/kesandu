@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = '@kesandu_guru_xp';
 const ONBOARDING_KEY = '@kesandu_onboarding_done';
 
-export default function SettingsScreen({ onClose, totalXP, level }) {
+export default function SettingsScreen({ onClose, totalXP, level, streak = 0, achievements = 0 }) {
   const [resetting, setResetting] = useState(false);
 
   const handleResetProgress = () => {
@@ -78,6 +78,14 @@ export default function SettingsScreen({ onClose, totalXP, level }) {
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{level}</Text>
               <Text style={styles.statLabel}>Level</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{streak}</Text>
+              <Text style={styles.statLabel}>Day Streak</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{achievements}</Text>
+              <Text style={styles.statLabel}>Badges</Text>
             </View>
           </View>
         </View>

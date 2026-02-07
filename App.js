@@ -10,7 +10,7 @@ import * as Haptics from 'expo-haptics';
 import {
   Brain, CheckCircle, Zap, X, Send,
   Play, ChevronRight, Briefcase, Target,
-  RotateCcw, Award, Star, BookOpen, TrendingUp, Settings,
+  RotateCcw, Award, Star, BookOpen, TrendingUp, Flame,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -28,6 +28,9 @@ import {
   PASS_THRESHOLD, PARTIAL_THRESHOLD, FORBIDDEN_PENALTY,
   READING_LEVEL_PENALTY, MIN_WORDS_SCORE_CAP, evaluateAnswer,
   xpForLevel, computeLevel,
+  getDateKey, computeStreak, computeStreakBonus,
+  analyzePerformancePattern, generateAdaptiveFeedback,
+  ACHIEVEMENTS, checkAchievements,
 } from './utils';
 
 const { width, height } = Dimensions.get('window');
@@ -718,12 +721,138 @@ function useXP() {
     return { done, total, isGuru: done === total && total > 0 };
   }, [completedChallenges]);
 
-  return { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress };
+  return { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress, completedChallenges };
+}
+
+// ============================================================================
+// 4. STREAK PERSISTENCE HOOK
+// ============================================================================
+
+const STREAK_KEY = '@kesandu_streak';
+const ACHIEVEMENTS_KEY = '@kesandu_achievements';
+
+function useStreak() {
+  const [activeDays, setActiveDays] = useState([]);
+  const [streakLoaded, setStreakLoaded] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(STREAK_KEY).then(val => {
+      if (val) setActiveDays(JSON.parse(val));
+      setStreakLoaded(true);
+    }).catch(() => setStreakLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!streakLoaded) return;
+    AsyncStorage.setItem(STREAK_KEY, JSON.stringify(activeDays)).catch(() => {});
+  }, [activeDays, streakLoaded]);
+
+  const recordActivity = useCallback(() => {
+    const today = getDateKey();
+    setActiveDays(prev => {
+      if (prev.includes(today)) return prev;
+      return [...prev, today];
+    });
+  }, []);
+
+  const streakInfo = computeStreak(activeDays);
+  const streakBonus = computeStreakBonus(streakInfo.current);
+
+  return { streakInfo, streakBonus, recordActivity, streakLoaded };
+}
+
+// ============================================================================
+// 5. ACHIEVEMENTS HOOK
+// ============================================================================
+
+function useAchievements() {
+  const [unlockedIds, setUnlockedIds] = useState([]);
+  const [newAchievement, setNewAchievement] = useState(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ACHIEVEMENTS_KEY).then(val => {
+      if (val) setUnlockedIds(JSON.parse(val));
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (unlockedIds.length > 0) {
+      AsyncStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(unlockedIds)).catch(() => {});
+    }
+  }, [unlockedIds]);
+
+  const checkAndUnlock = useCallback((stats) => {
+    const newly = checkAchievements(stats, unlockedIds);
+    if (newly.length > 0) {
+      setUnlockedIds(prev => [...prev, ...newly.map(a => a.id)]);
+      setNewAchievement(newly[0]);
+    }
+  }, [unlockedIds]);
+
+  const dismissAchievement = useCallback(() => setNewAchievement(null), []);
+
+  return { unlockedIds, newAchievement, checkAndUnlock, dismissAchievement };
 }
 
 // ============================================================================
 // 6. COMPONENTS
 // ============================================================================
+
+// -- Achievement Toast Component --
+
+const AchievementToast = ({ achievement, onDismiss }) => {
+  const slideAnim = useRef(new Animated.Value(-120)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (achievement) {
+      Animated.parallel([
+        Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 8, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
+      const timer = setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(slideAnim, { toValue: -120, duration: 300, useNativeDriver: true }),
+          Animated.timing(opacityAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+        ]).start(() => onDismiss());
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [achievement, slideAnim, opacityAnim, onDismiss]);
+
+  if (!achievement) return null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.achievementToast,
+        { transform: [{ translateY: slideAnim }], opacity: opacityAnim },
+      ]}
+    >
+      <View style={styles.achievementToastIcon}>
+        <Star size={18} color={THEME.guru} fill={THEME.guru} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.achievementToastTitle}>Achievement Unlocked!</Text>
+        <Text style={styles.achievementToastName}>{achievement.title}</Text>
+        <Text style={styles.achievementToastDesc}>{achievement.description}</Text>
+      </View>
+    </Animated.View>
+  );
+};
+
+// -- Streak Display Component --
+
+const StreakBadge = ({ current, isActiveToday }) => {
+  if (current <= 0) return null;
+
+  return (
+    <View style={[styles.streakBadge, isActiveToday && styles.streakBadgeActive]}>
+      <Flame size={12} color={isActiveToday ? '#FF6B35' : '#666'} fill={isActiveToday ? '#FF6B35' : 'transparent'} />
+      <Text style={[styles.streakText, isActiveToday && styles.streakTextActive]}>{current}</Text>
+    </View>
+  );
+};
 
 // -- Score Bar Component --
 
@@ -1257,8 +1386,10 @@ function AppContent() {
   const [activeChallenge, setActiveChallenge] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress } = useXP();
+  const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress, completedChallenges } = useXP();
   const { hasOnboarded, completeOnboarding } = useOnboarding();
+  const { streakInfo, streakBonus, recordActivity, streakLoaded } = useStreak();
+  const { unlockedIds, newAchievement, checkAndUnlock, dismissAchievement } = useAchievements();
 
   const guruRank = getGuruRank(totalXP);
   const nextRank = getNextRank(totalXP);
@@ -1293,10 +1424,30 @@ function AppContent() {
       awardXP(xp, challengeId);
     }
     setActiveChallenge(null);
+    recordActivity();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    // Check if this completion unlocks guru status for the module
+    // Check achievements after a brief delay to let state update
     setTimeout(() => {
+      const guruCount = CONTENT_DATA.filter(m => getModuleProgress(m).isGuru).length;
+      const allChallenges = CONTENT_DATA.flatMap(m => m.challenges);
+      const passedIds = [...completedChallenges, challengeId];
+      const teachBackPasses = allChallenges.filter(c => c.type === 'TEACH_BACK' && passedIds.includes(c.id)).length;
+      const applyPasses = allChallenges.filter(c => c.type === 'APPLY' && passedIds.includes(c.id)).length;
+      const modulesAttempted = CONTENT_DATA.filter(m => m.challenges.some(c => passedIds.includes(c.id))).length;
+
+      checkAndUnlock({
+        totalPasses: passedIds.length,
+        currentStreak: streakInfo.current + (streakInfo.isActiveToday ? 0 : 1),
+        guruCount,
+        highestScore: 0,
+        modulesAttempted,
+        teachBackPasses,
+        applyPasses,
+        totalAnalogies: 0,
+      });
+
+      // Check guru unlock
       for (const mod of CONTENT_DATA) {
         const allDone = mod.challenges.every(
           c => c.id === challengeId || isComplete(c.id)
@@ -1308,7 +1459,7 @@ function AppContent() {
         }
       }
     }, 500);
-  }, [awardXP, isComplete]);
+  }, [awardXP, isComplete, recordActivity, completedChallenges, getModuleProgress, streakInfo, checkAndUnlock]);
 
   const handleChallengeExit = useCallback(() => setActiveChallenge(null), []);
 
@@ -1324,7 +1475,7 @@ function AppContent() {
   const levelProgress = nextLevelXP > 0 ? Math.min(1, currentLevelXP / nextLevelXP) : 0;
   const guruCount = CONTENT_DATA.filter(m => getModuleProgress(m).isGuru).length;
 
-  if (hasOnboarded === null || !loaded) {
+  if (hasOnboarded === null || !loaded || !streakLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#00D9FF" />
@@ -1372,6 +1523,8 @@ function AppContent() {
           </TouchableOpacity>
         </View>
         <View style={styles.hudRight}>
+          {/* Streak badge */}
+          <StreakBadge current={streakInfo.current} isActiveToday={streakInfo.isActiveToday} />
           {/* Guru rank badge */}
           <View style={[styles.rankBadge, { borderColor: guruRank.color }]}>
             <Text style={[styles.rankText, { color: guruRank.color }]}>
@@ -1509,8 +1662,13 @@ function AppContent() {
           onClose={() => setShowSettings(false)}
           totalXP={totalXP}
           level={level}
+          streak={streakInfo.current}
+          achievements={unlockedIds.length}
         />
       </Modal>
+
+      {/* ACHIEVEMENT TOAST */}
+      <AchievementToast achievement={newAchievement} onDismiss={dismissAchievement} />
     </View>
   );
 }
@@ -2117,5 +2275,72 @@ const styles = StyleSheet.create({
     color: '#AAA',
     fontSize: 13,
     flex: 1,
+  },
+
+  // -- Streak Badge --
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  streakBadgeActive: {
+    backgroundColor: 'rgba(255, 107, 53, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 53, 0.3)',
+  },
+  streakText: {
+    color: '#666',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  streakTextActive: {
+    color: '#FF6B35',
+  },
+
+  // -- Achievement Toast --
+  achievementToast: {
+    position: 'absolute',
+    top: IS_IOS ? 60 : 40,
+    left: 16,
+    right: 16,
+    backgroundColor: '#1A1A2E',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+    zIndex: 200,
+  },
+  achievementToastIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  achievementToastTitle: {
+    color: THEME.guru,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  achievementToastName: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  achievementToastDesc: {
+    color: '#AAA',
+    fontSize: 12,
+    marginTop: 1,
   },
 });

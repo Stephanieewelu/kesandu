@@ -29,6 +29,13 @@ const {
   evaluateAnswer,
   xpForLevel,
   computeLevel,
+  getDateKey,
+  computeStreak,
+  computeStreakBonus,
+  analyzePerformancePattern,
+  generateAdaptiveFeedback,
+  ACHIEVEMENTS,
+  checkAchievements,
 } = require('../utils');
 
 // ============================================================================
@@ -862,5 +869,265 @@ describe('Constants', () => {
   it('DEPTH_MARKERS is a non-empty array', () => {
     expect(Array.isArray(DEPTH_MARKERS)).toBe(true);
     expect(DEPTH_MARKERS.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
+// STREAK SYSTEM
+// ============================================================================
+
+describe('Streak System', () => {
+  describe('getDateKey', () => {
+    it('returns YYYY-MM-DD format', () => {
+      const key = getDateKey(new Date(2026, 0, 15));
+      expect(key).toBe('2026-01-15');
+    });
+
+    it('pads single-digit months and days', () => {
+      const key = getDateKey(new Date(2026, 1, 5));
+      expect(key).toBe('2026-02-05');
+    });
+
+    it('uses current date when no argument given', () => {
+      const key = getDateKey();
+      expect(key).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+
+  describe('computeStreak', () => {
+    it('returns 0 for empty array', () => {
+      const result = computeStreak([]);
+      expect(result.current).toBe(0);
+      expect(result.longest).toBe(0);
+      expect(result.isActiveToday).toBe(false);
+    });
+
+    it('returns 0 for null', () => {
+      const result = computeStreak(null);
+      expect(result.current).toBe(0);
+    });
+
+    it('returns 1 for only today', () => {
+      const today = getDateKey();
+      const result = computeStreak([today]);
+      expect(result.current).toBe(1);
+      expect(result.isActiveToday).toBe(true);
+    });
+
+    it('counts consecutive days', () => {
+      const today = getDateKey();
+      const yesterday = getDateKey(new Date(Date.now() - 86400000));
+      const dayBefore = getDateKey(new Date(Date.now() - 2 * 86400000));
+      const result = computeStreak([dayBefore, yesterday, today]);
+      expect(result.current).toBe(3);
+    });
+
+    it('breaks streak on gap', () => {
+      const today = getDateKey();
+      const threeDaysAgo = getDateKey(new Date(Date.now() - 3 * 86400000));
+      const result = computeStreak([threeDaysAgo, today]);
+      expect(result.current).toBe(1);
+    });
+
+    it('tracks longest streak separately', () => {
+      const today = getDateKey();
+      const d1 = getDateKey(new Date(Date.now() - 10 * 86400000));
+      const d2 = getDateKey(new Date(Date.now() - 9 * 86400000));
+      const d3 = getDateKey(new Date(Date.now() - 8 * 86400000));
+      const d4 = getDateKey(new Date(Date.now() - 7 * 86400000));
+      const result = computeStreak([d1, d2, d3, d4, today]);
+      expect(result.longest).toBe(4);
+      expect(result.current).toBe(1);
+    });
+
+    it('deduplicates dates', () => {
+      const today = getDateKey();
+      const result = computeStreak([today, today, today]);
+      expect(result.current).toBe(1);
+    });
+  });
+
+  describe('computeStreakBonus', () => {
+    it('returns 0 for no streak', () => {
+      expect(computeStreakBonus(0)).toBe(0);
+    });
+
+    it('returns 5 for 1-2 day streak', () => {
+      expect(computeStreakBonus(1)).toBe(5);
+      expect(computeStreakBonus(2)).toBe(5);
+    });
+
+    it('returns 10 for 3-6 day streak', () => {
+      expect(computeStreakBonus(3)).toBe(10);
+      expect(computeStreakBonus(5)).toBe(10);
+    });
+
+    it('returns 20 for 7-13 day streak', () => {
+      expect(computeStreakBonus(7)).toBe(20);
+      expect(computeStreakBonus(13)).toBe(20);
+    });
+
+    it('returns 30 for 14-29 day streak', () => {
+      expect(computeStreakBonus(14)).toBe(30);
+    });
+
+    it('returns 50 for 30+ day streak', () => {
+      expect(computeStreakBonus(30)).toBe(50);
+      expect(computeStreakBonus(100)).toBe(50);
+    });
+  });
+});
+
+// ============================================================================
+// ADAPTIVE FEEDBACK ENGINE
+// ============================================================================
+
+describe('Adaptive Feedback Engine', () => {
+  describe('analyzePerformancePattern', () => {
+    it('returns NEW for empty history', () => {
+      expect(analyzePerformancePattern([])).toBe('NEW');
+      expect(analyzePerformancePattern(null)).toBe('NEW');
+    });
+
+    it('returns STRONG for consistently high scores', () => {
+      const history = [{ score: 80 }, { score: 85 }, { score: 90 }];
+      expect(analyzePerformancePattern(history)).toBe('STRONG');
+    });
+
+    it('returns STRUGGLING for consistently low scores', () => {
+      const history = [{ score: 20 }, { score: 25 }];
+      expect(analyzePerformancePattern(history)).toBe('STRUGGLING');
+    });
+
+    it('returns IMPROVING for upward trend', () => {
+      const history = [{ score: 30 }, { score: 55 }];
+      expect(analyzePerformancePattern(history)).toBe('IMPROVING');
+    });
+
+    it('returns DEVELOPING for moderate performance', () => {
+      const history = [{ score: 50 }];
+      expect(analyzePerformancePattern(history)).toBe('DEVELOPING');
+    });
+
+    it('uses only last 3 entries', () => {
+      const history = [
+        { score: 10 }, { score: 15 }, { score: 20 },
+        { score: 80 }, { score: 85 }, { score: 90 },
+      ];
+      expect(analyzePerformancePattern(history)).toBe('STRONG');
+    });
+  });
+
+  describe('generateAdaptiveFeedback', () => {
+    it('returns tips array for STRUGGLING pattern', () => {
+      const tips = generateAdaptiveFeedback('STRUGGLING', 'CONCEPT_CHECK', 25);
+      expect(tips.length).toBeGreaterThan(0);
+      expect(tips.some(t => t.includes('Re-watch'))).toBe(true);
+    });
+
+    it('gives teach-back specific advice for STRUGGLING', () => {
+      const tips = generateAdaptiveFeedback('STRUGGLING', 'TEACH_BACK', 20);
+      expect(tips.some(t => t.includes('analogy'))).toBe(true);
+    });
+
+    it('gives apply-specific advice for STRUGGLING', () => {
+      const tips = generateAdaptiveFeedback('STRUGGLING', 'APPLY', 20);
+      expect(tips.some(t => t.includes('risk'))).toBe(true);
+    });
+
+    it('gives encouragement for IMPROVING', () => {
+      const tips = generateAdaptiveFeedback('IMPROVING', 'CONCEPT_CHECK', 55);
+      expect(tips.some(t => t.includes('progress'))).toBe(true);
+    });
+
+    it('gives depth tip when close to passing', () => {
+      const tips = generateAdaptiveFeedback('IMPROVING', 'CONCEPT_CHECK', 55);
+      expect(tips.some(t => t.includes('because'))).toBe(true);
+    });
+
+    it('gives mastery feedback for STRONG', () => {
+      const tips = generateAdaptiveFeedback('STRONG', 'CONCEPT_CHECK', 85);
+      expect(tips.some(t => t.includes('mastery'))).toBe(true);
+    });
+
+    it('gives welcoming feedback for NEW', () => {
+      const tips = generateAdaptiveFeedback('NEW', 'CONCEPT_CHECK', 0);
+      expect(tips.some(t => t.includes('time'))).toBe(true);
+    });
+  });
+});
+
+// ============================================================================
+// ACHIEVEMENT SYSTEM
+// ============================================================================
+
+describe('Achievement System', () => {
+  describe('ACHIEVEMENTS', () => {
+    it('has at least 10 achievements', () => {
+      expect(ACHIEVEMENTS.length).toBeGreaterThanOrEqual(10);
+    });
+
+    it('each achievement has required fields', () => {
+      for (const a of ACHIEVEMENTS) {
+        expect(a).toHaveProperty('id');
+        expect(a).toHaveProperty('title');
+        expect(a).toHaveProperty('description');
+        expect(a).toHaveProperty('icon');
+        expect(a).toHaveProperty('condition');
+        expect(typeof a.condition).toBe('function');
+      }
+    });
+
+    it('has unique IDs', () => {
+      const ids = ACHIEVEMENTS.map(a => a.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+  });
+
+  describe('checkAchievements', () => {
+    it('returns empty when no achievements earned', () => {
+      const stats = { totalPasses: 0, currentStreak: 0, guruCount: 0, highestScore: 0, modulesAttempted: 0, teachBackPasses: 0, applyPasses: 0, totalAnalogies: 0 };
+      const result = checkAchievements(stats, []);
+      expect(result).toEqual([]);
+    });
+
+    it('unlocks first_pass achievement', () => {
+      const stats = { totalPasses: 1, currentStreak: 0, guruCount: 0, highestScore: 70, modulesAttempted: 1, teachBackPasses: 0, applyPasses: 0, totalAnalogies: 0 };
+      const result = checkAchievements(stats, []);
+      expect(result.some(a => a.id === 'first_pass')).toBe(true);
+    });
+
+    it('does not re-unlock already unlocked achievements', () => {
+      const stats = { totalPasses: 1, currentStreak: 0, guruCount: 0, highestScore: 70, modulesAttempted: 1, teachBackPasses: 0, applyPasses: 0, totalAnalogies: 0 };
+      const result = checkAchievements(stats, ['first_pass']);
+      expect(result.some(a => a.id === 'first_pass')).toBe(false);
+    });
+
+    it('unlocks streak achievements at milestones', () => {
+      const stats = { totalPasses: 0, currentStreak: 7, guruCount: 0, highestScore: 0, modulesAttempted: 0, teachBackPasses: 0, applyPasses: 0, totalAnalogies: 0 };
+      const result = checkAchievements(stats, []);
+      expect(result.some(a => a.id === 'streak_3')).toBe(true);
+      expect(result.some(a => a.id === 'streak_7')).toBe(true);
+      expect(result.some(a => a.id === 'streak_30')).toBe(false);
+    });
+
+    it('unlocks guru achievements', () => {
+      const stats = { totalPasses: 5, currentStreak: 0, guruCount: 1, highestScore: 80, modulesAttempted: 3, teachBackPasses: 0, applyPasses: 0, totalAnalogies: 0 };
+      const result = checkAchievements(stats, []);
+      expect(result.some(a => a.id === 'guru_1')).toBe(true);
+      expect(result.some(a => a.id === 'guru_all')).toBe(false);
+    });
+
+    it('unlocks perfect score achievement', () => {
+      const stats = { totalPasses: 1, currentStreak: 0, guruCount: 0, highestScore: 100, modulesAttempted: 1, teachBackPasses: 0, applyPasses: 0, totalAnalogies: 0 };
+      const result = checkAchievements(stats, []);
+      expect(result.some(a => a.id === 'perfect_score')).toBe(true);
+    });
+
+    it('unlocks multiple achievements simultaneously', () => {
+      const stats = { totalPasses: 5, currentStreak: 3, guruCount: 1, highestScore: 100, modulesAttempted: 7, teachBackPasses: 5, applyPasses: 5, totalAnalogies: 10 };
+      const result = checkAchievements(stats, []);
+      expect(result.length).toBeGreaterThan(5);
+    });
   });
 });
