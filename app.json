@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Kesandu Guru",
+    "slug": "kesandu-guru",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kesandu.guru"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "com.kesandu.guru"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
