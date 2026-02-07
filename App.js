@@ -10,10 +10,13 @@ import * as Haptics from 'expo-haptics';
 import {
   Brain, CheckCircle, Zap, X, Send,
   Play, ChevronRight, Briefcase, Target,
-  RotateCcw, Award, Star, BookOpen, TrendingUp,
+  RotateCcw, Award, Star, BookOpen, TrendingUp, Settings,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import YoutubePlayer from 'react-native-youtube-iframe';
+import ErrorBoundary from './src/components/ErrorBoundary';
+import OnboardingScreen from './src/screens/OnboardingScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import {
   GURU_RANKS, getGuruRank, getNextRank,
   stem, normalize, tokenize, buildNGrams,
@@ -649,6 +652,24 @@ const CONTENT_DATA = [
 // ============================================================================
 
 const STORAGE_KEY = '@kesandu_guru_xp';
+const ONBOARDING_KEY = '@kesandu_onboarding_done';
+
+function useOnboarding() {
+  const [hasOnboarded, setHasOnboarded] = useState(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY).then(val => {
+      setHasOnboarded(val === 'true');
+    }).catch(() => setHasOnboarded(false));
+  }, []);
+
+  const completeOnboarding = useCallback(async () => {
+    setHasOnboarded(true);
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true').catch(() => {});
+  }, []);
+
+  return { hasOnboarded, completeOnboarding };
+}
 
 function useXP() {
   const [totalXP, setTotalXP] = useState(0);
@@ -899,7 +920,7 @@ const GuruCelebration = ({ visible, guruTitle, onDismiss }) => {
         <Text style={styles.celebrationDesc}>
           You've mastered all challenges for this topic. You are now a certified guru!
         </Text>
-        <TouchableOpacity style={styles.celebrationBtn} onPress={onDismiss}>
+        <TouchableOpacity style={styles.celebrationBtn} onPress={onDismiss} accessibilityRole="button" accessibilityLabel="Continue after guru unlock">
           <Text style={styles.celebrationBtnText}>CONTINUE</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -996,7 +1017,7 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
       <View style={styles.chatHeader}>
-        <TouchableOpacity onPress={onExit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TouchableOpacity onPress={onExit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Close challenge">
           <X size={24} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -1052,6 +1073,8 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
               style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
               onPress={handleSend}
               disabled={!input.trim() || isAiTyping}
+              accessibilityRole="button"
+              accessibilityLabel="Send your answer"
             >
               <Send size={20} color={input.trim() ? '#000' : '#666'} />
             </TouchableOpacity>
@@ -1059,7 +1082,7 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
         ) : (
           <View style={styles.actionBar}>
             {(status === 'FAIL' || status === 'PARTIAL') && (
-              <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
+              <TouchableOpacity style={styles.retryBtn} onPress={handleRetry} accessibilityRole="button" accessibilityLabel="Try challenge again">
                 <RotateCcw size={18} color={THEME.textSoft} />
                 <Text style={styles.retryBtnText}>Try Again</Text>
               </TouchableOpacity>
@@ -1205,6 +1228,8 @@ const VideoFeedItem = React.memo(
                 moduleProgress.isGuru && styles.dojoBtnGuru,
               ]}
               onPress={handleEnter}
+              accessibilityRole="button"
+              accessibilityLabel={moduleProgress.isGuru ? `Review ${item.title} dojo` : `Enter ${item.title} dojo`}
             >
               <Brain size={20} color="#000" />
               <Text style={styles.dojoBtnText}>
@@ -1226,15 +1251,29 @@ const VideoFeedItem = React.memo(
 // 7. MAIN APP
 // ============================================================================
 
-export default function App() {
+function AppContent() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeModule, setActiveModule] = useState(null);
   const [activeChallenge, setActiveChallenge] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
   const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress } = useXP();
+  const { hasOnboarded, completeOnboarding } = useOnboarding();
 
   const guruRank = getGuruRank(totalXP);
   const nextRank = getNextRank(totalXP);
+
+  if (hasOnboarded === null || !loaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#00D9FF" />
+      </View>
+    );
+  }
+
+  if (!hasOnboarded) {
+    return <OnboardingScreen onComplete={completeOnboarding} />;
+  }
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 70,
@@ -1325,8 +1364,14 @@ export default function App() {
       {/* HUD OVERLAY */}
       <SafeAreaView style={styles.hud} pointerEvents="box-none">
         <View style={styles.hudLeft}>
-          <Text style={styles.logo}>KESANDU</Text>
-          <Text style={styles.logoSubtitle}>GURU</Text>
+          <TouchableOpacity
+            onPress={() => setShowSettings(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open settings"
+          >
+            <Text style={styles.logo}>KESANDU</Text>
+            <Text style={styles.logoSubtitle}>GURU</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.hudRight}>
           {/* Guru rank badge */}
@@ -1365,7 +1410,7 @@ export default function App() {
         <View style={styles.modalContainer}>
           <View style={styles.chatHeader}>
             <Text style={styles.headerTitle}>TRAINING MODULE</Text>
-            <TouchableOpacity onPress={handleCloseModule}>
+            <TouchableOpacity onPress={handleCloseModule} accessibilityRole="button" accessibilityLabel="Close training module">
               <X size={24} color="#FFF" />
             </TouchableOpacity>
           </View>
@@ -1459,7 +1504,24 @@ export default function App() {
         guruTitle={showCelebration || ''}
         onDismiss={() => setShowCelebration(null)}
       />
+
+      {/* SETTINGS MODAL */}
+      <Modal visible={showSettings} animationType="slide">
+        <SettingsScreen
+          onClose={() => setShowSettings(false)}
+          totalXP={totalXP}
+          level={level}
+        />
+      </Modal>
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }
 
