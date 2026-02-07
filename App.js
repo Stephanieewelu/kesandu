@@ -3,94 +3,81 @@ import {
   StyleSheet, Text, View, Dimensions, TouchableOpacity,
   TextInput, Modal, ScrollView, SafeAreaView, FlatList,
   ActivityIndicator, Platform, KeyboardAvoidingView,
-  Keyboard, Animated,
+  Keyboard, Animated, Pressable, Easing, AppState, Switch,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import {
   Brain, CheckCircle, Zap, X, Send,
-  Play, ChevronRight, Briefcase, Target,
-  RotateCcw, Award, Star, BookOpen, TrendingUp,
+  ChevronRight, Briefcase, Play,
+  RotateCcw, Target, Activity, Cpu, Sparkles, Settings,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Line, Circle as SvgCircle, G, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import YoutubePlayer from 'react-native-youtube-iframe';
 
 const { width, height } = Dimensions.get('window');
 const IS_IOS = Platform.OS === 'ios';
 
 // ============================================================================
-// 1. THEME
+// 1. THEME — "Bioluminescent Dark"
 // ============================================================================
 
-const THEME = {
-  primary: '#00D9FF',
-  success: '#00FF9D',
-  danger: '#FF4D4D',
-  warning: '#FFD600',
-  partial: '#FF8C00',
+const T = {
+  // Core
   bg: '#000000',
-  card: '#121212',
+  surface: '#0A0A12',
+  card: '#0D0D1A',
+  border: '#1A1A2E',
+
+  // Neon Bioluminescence
+  primary: '#00E5FF',
+  primaryDim: 'rgba(0,229,255,0.15)',
+  success: '#00FF9D',
+  successDim: 'rgba(0,255,157,0.12)',
+  danger: '#FF3366',
+  dangerDim: 'rgba(255,51,102,0.15)',
+  warning: '#FFD600',
+  warningDim: 'rgba(255,214,0,0.1)',
+  partial: '#FF8C00',
   guru: '#FFD700',
-  surface: '#111111',
-  border: '#222222',
-  muted: '#666666',
+
+  // Neural
+  synapse: '#7B61FF',
+  synapseDim: 'rgba(123,97,255,0.2)',
+  neural: '#00FF9D',
+  neuralPulse: '#00E5FF',
+
+  // Text
   text: '#FFFFFF',
-  textSoft: '#CCCCCC',
-  guruGlow: '#FFB800',
+  soft: '#8888AA',
+  muted: '#555577',
+
+  // Clarity states
+  crystal: '#00E5FF',
+  muddy: '#FF3366',
+  haze: 'rgba(0,0,0,0.7)',
 };
 
 // ============================================================================
-// 2. GURU RANK SYSTEM
+// 2. CONTENT DATABASE
 // ============================================================================
 
-const GURU_RANKS = [
-  { title: 'Curious Mind', minXP: 0, color: '#888888', icon: '?' },
-  { title: 'AI Apprentice', minXP: 100, color: '#00D9FF', icon: '>' },
-  { title: 'Pattern Seeker', minXP: 350, color: '#00FF9D', icon: '^' },
-  { title: 'Neural Thinker', minXP: 700, color: '#FF8C00', icon: '*' },
-  { title: 'AI Guru', minXP: 1200, color: '#FFD700', icon: '#' },
-  { title: 'Grand Guru', minXP: 2000, color: '#FF00FF', icon: '!' },
-];
-
-function getGuruRank(totalXP) {
-  let rank = GURU_RANKS[0];
-  for (const r of GURU_RANKS) {
-    if (totalXP >= r.minXP) rank = r;
-  }
-  return rank;
-}
-
-function getNextRank(totalXP) {
-  for (const r of GURU_RANKS) {
-    if (totalXP < r.minXP) return r;
-  }
-  return null;
-}
-
-// ============================================================================
-// 3. AI-FOCUSED CONTENT DATABASE
-// ============================================================================
-
-const CONTENT_DATA = [
+const CONTENT = [
   {
     id: '1',
     youtubeId: 'zjkBMFhNj_g',
-    title: 'How LLMs Work',
+    title: 'Large Language Models',
     creator: '@karpathy',
-    category: 'AI Foundations',
+    category: 'AI ENGINEERING',
     xp: 300,
-    guruTitle: 'LLM Guru',
-    applicationScenario: {
-      role: 'AI Consultant',
-      context: 'A law firm wants to replace paralegals with an LLM. They trust it blindly. You must explain the limitations.',
-    },
+    scenario: { role: 'AI Consultant', context: 'A law firm wants to replace paralegals with an LLM. They trust it blindly.' },
     challenges: [
       {
-        id: 'c1_1',
-        type: 'CONCEPT_CHECK',
-        title: 'The Mechanism',
-        prompt: 'Does an LLM "know" facts? Explain specifically how it generates the next word.',
-        initialAiMessage: "I asked ChatGPT the capital of France and it got it right. That proves it has a database of facts, doesn't it?",
+        id: 'c1_1', type: 'CONCEPT_CHECK', title: 'The Mechanism',
+        prompt: 'Does an LLM "know" facts? Explain how it generates the next word.',
+        aiOpener: "I asked ChatGPT the capital of France and it got it right. That proves it has a database of facts, doesn't it?",
+        aiPersona: 'skeptical_executive',
         required_concepts: [
           [
             { term: 'predict', synonyms: ['predicts', 'prediction', 'predicting', 'forecast'], weight: 3 },
@@ -103,1141 +90,928 @@ const CONTENT_DATA = [
           ],
         ],
         forbidden_terms: [],
-        min_word_count: 15,
-        max_reading_level: null,
-        xp_reward: 150,
-        partial_xp_reward: 60,
+        min_word_count: 15, max_reading_level: null,
+        xp_reward: 150, partial_xp_reward: 60,
         hint: 'Focus on the statistical nature of the output.',
       },
       {
-        id: 'c1_2',
-        type: 'TEACH_BACK',
-        title: 'Guru Synthesis',
-        prompt: 'Explain LLMs to a 5-year-old. Use an analogy. No technical jargon.',
-        initialAiMessage: "I'm 5. I don't know what a 'neural net' is. How does the computer write stories?",
+        id: 'c1_2', type: 'TEACH_BACK', title: 'Guru Synthesis',
+        prompt: 'Explain LLMs to a 5-year-old. Analogy only. No jargon.',
+        aiOpener: "I'm 5. I don't know what a 'neural net' is. How does the computer write stories?",
+        aiPersona: 'curious_child',
         required_concepts: [
-          [
-            { term: 'like a', synonyms: ['imagine', 'pretend', 'think of', 'similar to', 'just like', 'same as'], weight: 3 },
-          ],
+          [{ term: 'like a', synonyms: ['imagine', 'pretend', 'think of', 'similar to', 'just like', 'same as'], weight: 3 }],
           [
             { term: 'guess', synonyms: ['guesses', 'guessing', 'fills in', 'completes', 'finishes', 'auto-complete', 'autocomplete'], weight: 3 },
             { term: 'story', synonyms: ['stories', 'sentences', 'words', 'book'], weight: 1 },
           ],
         ],
         forbidden_terms: [
-          { term: 'transformer', hint: 'Use "smart helper" or "word machine" instead.' },
-          { term: 'stochastic', hint: "Way too technical! Just say 'random' or 'guessing'." },
-          { term: 'gradient', hint: "A 5-year-old doesn't know calculus!" },
-          { term: 'vector', hint: 'Try "direction" or just skip this concept.' },
-          { term: 'embedding', hint: 'Say "turning words into numbers" if needed.' },
-          { term: 'neural', hint: 'Say "brain" or "smart computer" instead.' },
-          { term: 'algorithm', hint: 'Say "recipe" or "set of steps" instead.' },
-          { term: 'parameter', hint: 'Skip this \u2014 too technical for a 5-year-old.' },
+          { term: 'transformer', hint: '"smart helper" or "word machine"' },
+          { term: 'stochastic', hint: '"random" or "guessing"' },
+          { term: 'gradient', hint: 'Skip calculus for a 5-year-old!' },
+          { term: 'vector', hint: '"direction" or skip it' },
+          { term: 'embedding', hint: '"turning words into numbers"' },
+          { term: 'neural', hint: '"brain" or "smart computer"' },
+          { term: 'algorithm', hint: '"recipe" or "steps"' },
+          { term: 'parameter', hint: 'Too technical — skip it' },
         ],
-        min_word_count: 20,
-        max_reading_level: 7,
-        xp_reward: 150,
-        partial_xp_reward: 60,
-        hint: "Use an analogy (e.g., 'auto-complete' or 'guessing game'). Don't use big words.",
+        min_word_count: 20, max_reading_level: 7,
+        xp_reward: 150, partial_xp_reward: 60,
+        hint: "Use an analogy like 'guessing game'. No big words.",
       },
     ],
   },
   {
     id: '2',
-    youtubeId: 'aircAruvnKk',
-    title: 'Neural Networks',
-    creator: '@3blue1brown',
-    category: 'AI Foundations',
-    xp: 300,
-    guruTitle: 'Neural Net Guru',
-    applicationScenario: {
-      role: 'ML Engineer',
-      context: 'Your CEO says "just add more layers" to fix a failing model. You need to explain why that might not help.',
-    },
+    youtubeId: 'HkdAHXoRtos',
+    title: 'Git Version Control',
+    creator: '@fireship',
+    category: 'DEVOPS',
+    xp: 250,
+    scenario: { role: 'Lead Developer', context: 'A junior dev deleted a branch. They think the code is gone forever.' },
     challenges: [
       {
-        id: 'c2_1',
-        type: 'CONCEPT_CHECK',
-        title: 'Layers & Learning',
-        prompt: 'What does a hidden layer in a neural network actually do? How does it learn?',
-        initialAiMessage: "I heard neural networks have layers like a cake. Does each layer memorize different facts?",
+        id: 'c2_1', type: 'CONCEPT_CHECK', title: 'Mental Model',
+        prompt: 'Explain the difference between a Branch and a Commit.',
+        aiOpener: "Isn't a branch just a folder of files? When I switch branches, where do my files go?",
+        aiPersona: 'confused_junior',
         required_concepts: [
-          [
-            { term: 'weight', synonyms: ['weights', 'parameters', 'connections', 'adjusts', 'adjust'], weight: 3 },
-            { term: 'activation', synonyms: ['activations', 'neurons fire', 'output signal', 'nonlinear'], weight: 2 },
-          ],
-          [
-            { term: 'feature', synonyms: ['features', 'representation', 'abstract', 'pattern', 'patterns', 'detect'], weight: 3 },
-          ],
+          [{ term: 'pointer', synonyms: ['reference', 'label', 'sticky note', 'bookmark', 'points to', 'refers to'], weight: 3 }],
+          [{ term: 'snapshot', synonyms: ['hash', 'history', 'commit', 'save point', 'checkpoint', 'record'], weight: 2 }],
         ],
         forbidden_terms: [],
-        min_word_count: 15,
-        max_reading_level: null,
-        xp_reward: 150,
-        partial_xp_reward: 60,
-        hint: 'Think about how each layer transforms data and detects patterns.',
-      },
-      {
-        id: 'c2_2',
-        type: 'TEACH_BACK',
-        title: 'ELI5: Neural Nets',
-        prompt: 'Explain neural networks to someone who has never coded. Use a real-world analogy.',
-        initialAiMessage: "I'm a chef. I don't know what code is. How does the computer learn to recognize a cat photo?",
-        required_concepts: [
-          [
-            { term: 'like a', synonyms: ['imagine', 'pretend', 'think of', 'similar to', 'just like', 'same as', 'recipe'], weight: 3 },
-          ],
-          [
-            { term: 'learn', synonyms: ['learns', 'learning', 'practice', 'practices', 'improve', 'improves', 'gets better', 'trains'], weight: 3 },
-          ],
-        ],
-        forbidden_terms: [
-          { term: 'backpropagation', hint: 'Say "learning from mistakes" instead.' },
-          { term: 'gradient descent', hint: 'Say "adjusting step by step" instead.' },
-          { term: 'matrix', hint: 'Skip this \u2014 say "grid of numbers" if needed.' },
-          { term: 'tensor', hint: 'Way too technical. Skip it.' },
-          { term: 'epoch', hint: 'Say "round of practice" instead.' },
-          { term: 'loss function', hint: 'Say "score card" or "mistake counter" instead.' },
-        ],
-        min_word_count: 20,
-        max_reading_level: 7,
-        xp_reward: 150,
-        partial_xp_reward: 60,
-        hint: 'Compare it to learning a skill through repetition and feedback.',
+        min_word_count: 15, max_reading_level: null,
+        xp_reward: 125, partial_xp_reward: 50,
+        hint: 'A branch is a movable pointer to a commit.',
       },
     ],
   },
   {
     id: '3',
-    youtubeId: 'wjZofJX0v4M',
-    title: 'Transformer Architecture',
-    creator: '@3blue1brown',
-    category: 'AI Deep Dive',
-    xp: 350,
-    guruTitle: 'Transformer Guru',
-    applicationScenario: {
-      role: 'AI Architect',
-      context: 'Your team wants to build a custom model. They ask: should we use RNNs or Transformers? You need to explain the key difference.',
-    },
-    challenges: [
-      {
-        id: 'c3_1',
-        type: 'CONCEPT_CHECK',
-        title: 'Attention Mechanism',
-        prompt: 'What is "attention" in transformers? Why was it a breakthrough over previous approaches?',
-        initialAiMessage: "I know transformers replaced older models. But what exactly is 'attention' and why does it matter?",
-        required_concepts: [
-          [
-            { term: 'attention', synonyms: ['self-attention', 'attends to', 'focus on', 'focuses on', 'looks at all', 'weighs'], weight: 3 },
-          ],
-          [
-            { term: 'parallel', synonyms: ['simultaneously', 'all at once', 'at the same time', 'concurrent', 'not sequential'], weight: 3 },
-            { term: 'context', synonyms: ['relationship', 'relationships', 'connections', 'relevant', 'relevance', 'related words'], weight: 2 },
-          ],
-        ],
-        forbidden_terms: [],
-        min_word_count: 20,
-        max_reading_level: null,
-        xp_reward: 175,
-        partial_xp_reward: 70,
-        hint: 'Think about how attention lets the model look at ALL words at once, not one by one.',
-      },
-      {
-        id: 'c3_2',
-        type: 'TEACH_BACK',
-        title: 'ELI5: Attention',
-        prompt: 'Explain the attention mechanism to a high school student. No math, just intuition.',
-        initialAiMessage: "I'm in 10th grade. I heard AI uses 'attention' but that sounds like a human thing. What does it mean for a computer?",
-        required_concepts: [
-          [
-            { term: 'important', synonyms: ['matters', 'relevant', 'focus', 'focuses', 'pay attention', 'which parts'], weight: 3 },
-          ],
-          [
-            { term: 'word', synonyms: ['words', 'sentence', 'text', 'meaning', 'reads'], weight: 1 },
-          ],
-        ],
-        forbidden_terms: [
-          { term: 'query key value', hint: 'Say "the model asks what\'s important" instead.' },
-          { term: 'softmax', hint: 'Way too mathy. Say "picks the most relevant parts."' },
-          { term: 'dot product', hint: 'Say "measures similarity" or "compares words."' },
-          { term: 'multihead', hint: 'Say "looks at things from different angles."' },
-          { term: 'positional encoding', hint: 'Say "knows the order of words."' },
-        ],
-        min_word_count: 20,
-        max_reading_level: 9,
-        xp_reward: 175,
-        partial_xp_reward: 70,
-        hint: 'Compare it to highlighting the most important words in a sentence.',
-      },
-    ],
-  },
-  {
-    id: '4',
-    youtubeId: '_bvrzYOA8dY',
-    title: 'Prompt Engineering',
-    creator: '@fireship',
-    category: 'AI Skills',
-    xp: 250,
-    guruTitle: 'Prompt Guru',
-    applicationScenario: {
-      role: 'AI Product Manager',
-      context: 'Your team is getting inconsistent outputs from GPT-4. Users complain the chatbot gives random answers. You need to fix the prompting strategy.',
-    },
-    challenges: [
-      {
-        id: 'c4_1',
-        type: 'CONCEPT_CHECK',
-        title: 'Prompt Design',
-        prompt: 'Why does prompt structure matter? What makes a good prompt vs a bad one?',
-        initialAiMessage: "I just type whatever I want into ChatGPT. Sometimes it works, sometimes it doesn't. Isn't it just luck?",
-        required_concepts: [
-          [
-            { term: 'specific', synonyms: ['specificity', 'clear', 'clarity', 'precise', 'detailed', 'explicit', 'instructions'], weight: 3 },
-          ],
-          [
-            { term: 'context', synonyms: ['background', 'role', 'system prompt', 'examples', 'few-shot', 'few shot'], weight: 3 },
-            { term: 'structure', synonyms: ['structured', 'format', 'template', 'framework', 'step by step', 'chain of thought'], weight: 2 },
-          ],
-        ],
-        forbidden_terms: [],
-        min_word_count: 15,
-        max_reading_level: null,
-        xp_reward: 125,
-        partial_xp_reward: 50,
-        hint: 'Think about clarity, context-setting, and structured output.',
-      },
-      {
-        id: 'c4_2',
-        type: 'TEACH_BACK',
-        title: 'ELI5: Prompting',
-        prompt: 'Explain why prompt engineering matters to someone who just uses ChatGPT casually.',
-        initialAiMessage: "I just ask ChatGPT stuff and it answers. Why would I need to learn special ways to ask?",
-        required_concepts: [
-          [
-            { term: 'ask', synonyms: ['question', 'request', 'tell', 'instruct', 'describe', 'explain to'], weight: 2 },
-          ],
-          [
-            { term: 'better', synonyms: ['improved', 'accurate', 'useful', 'helpful', 'quality', 'good'], weight: 2 },
-            { term: 'answer', synonyms: ['response', 'output', 'result', 'reply', 'results'], weight: 1 },
-          ],
-        ],
-        forbidden_terms: [
-          { term: 'token', hint: 'Say "word" or "piece of text" instead.' },
-          { term: 'temperature', hint: 'Say "randomness setting" or just "creativity dial."' },
-          { term: 'embedding', hint: 'Way too technical. Skip it.' },
-          { term: 'latent space', hint: 'No one casually knows this. Skip it.' },
-        ],
-        min_word_count: 20,
-        max_reading_level: 8,
-        xp_reward: 125,
-        partial_xp_reward: 50,
-        hint: 'Compare it to asking a really smart person a vague question vs a specific one.',
-      },
-    ],
-  },
-  {
-    id: '5',
-    youtubeId: 'jGwO_UgTS7I',
-    title: 'AI Hallucinations',
-    creator: '@IBMTechnology',
-    category: 'AI Safety',
-    xp: 300,
-    guruTitle: 'AI Safety Guru',
-    applicationScenario: {
-      role: 'AI Safety Officer',
-      context: 'A medical startup wants to use AI to diagnose patients. The AI sometimes confidently gives wrong answers. You must explain the risk.',
-    },
-    challenges: [
-      {
-        id: 'c5_1',
-        type: 'CONCEPT_CHECK',
-        title: 'Why AI Lies',
-        prompt: 'Why do LLMs "hallucinate"? Why do they state false things with confidence?',
-        initialAiMessage: "The AI sounded so sure when it gave a wrong answer. Does it know it's lying?",
-        required_concepts: [
-          [
-            { term: 'confidence', synonyms: ['confident', 'certainty', 'sure', 'convincing', 'plausible', 'fluent'], weight: 2 },
-            { term: 'no understanding', synonyms: ['doesnt understand', 'no knowledge', 'not aware', 'no awareness', 'doesnt know', 'cant tell'], weight: 3 },
-          ],
-          [
-            { term: 'training data', synonyms: ['trained on', 'learned from', 'data it saw', 'patterns in data', 'statistical'], weight: 3 },
-          ],
-        ],
-        forbidden_terms: [],
-        min_word_count: 15,
-        max_reading_level: null,
-        xp_reward: 150,
-        partial_xp_reward: 60,
-        hint: "The model doesn't 'know' truth from fiction \u2014 it generates plausible-sounding text.",
-      },
-      {
-        id: 'c5_2',
-        type: 'TEACH_BACK',
-        title: 'ELI5: Hallucinations',
-        prompt: 'Explain AI hallucinations to a non-technical manager who trusts ChatGPT completely.',
-        initialAiMessage: "ChatGPT is always right though, isn't it? It sounds so professional. Why would I double-check it?",
-        required_concepts: [
-          [
-            { term: 'make up', synonyms: ['makes up', 'invents', 'fabricates', 'creates', 'generates', 'guesses', 'fills in gaps'], weight: 3 },
-          ],
-          [
-            { term: 'check', synonyms: ['verify', 'double check', 'fact check', 'confirm', 'validate', 'review', 'trust but verify'], weight: 3 },
-          ],
-        ],
-        forbidden_terms: [
-          { term: 'hallucinate', hint: 'They won\'t understand this term. Say "makes things up" or "invents facts."' },
-          { term: 'stochastic', hint: 'Say "random" or "unpredictable" instead.' },
-          { term: 'inference', hint: 'Say "when it generates an answer" instead.' },
-          { term: 'token', hint: 'Say "word" or "text" instead.' },
-        ],
-        min_word_count: 20,
-        max_reading_level: 8,
-        xp_reward: 150,
-        partial_xp_reward: 60,
-        hint: 'Compare it to a confident student who makes up an answer rather than saying "I don\'t know."',
-      },
-    ],
-  },
-  {
-    id: '6',
-    youtubeId: 'HkdAHXoRtos',
-    title: 'Git for AI Projects',
-    creator: '@fireship',
-    category: 'AI Tooling',
-    xp: 200,
-    guruTitle: 'Version Control Guru',
-    applicationScenario: {
-      role: 'ML Ops Engineer',
-      context: 'A junior ML engineer deleted a model training branch. They think the code and experiment results are gone forever.',
-    },
-    challenges: [
-      {
-        id: 'c6_1',
-        type: 'CONCEPT_CHECK',
-        title: 'Mental Model',
-        prompt: 'Explain the difference between a Branch and a Commit Reference.',
-        initialAiMessage: "Isn't a branch just a folder of files? When I switch branches, where do my files go?",
-        required_concepts: [
-          [
-            { term: 'pointer', synonyms: ['reference', 'label', 'sticky note', 'bookmark', 'points to', 'refers to'], weight: 3 },
-          ],
-          [
-            { term: 'snapshot', synonyms: ['hash', 'history', 'commit', 'save point', 'checkpoint', 'record'], weight: 2 },
-          ],
-        ],
-        forbidden_terms: [],
-        min_word_count: 15,
-        max_reading_level: null,
-        xp_reward: 100,
-        partial_xp_reward: 40,
-        hint: 'A branch is just a movable pointer to a commit.',
-      },
-    ],
-  },
-  {
-    id: '7',
     youtubeId: 'Tn6-PIqc4UM',
-    title: 'React for AI Apps',
+    title: 'React Fundamentals',
     creator: '@fireship',
-    category: 'AI Tooling',
+    category: 'WEB DEV',
     xp: 250,
-    guruTitle: 'AI Frontend Guru',
-    applicationScenario: {
-      role: 'AI Frontend Engineer',
-      context: 'You\'re building a ChatGPT-like interface. The app freezes on every keystroke while streaming AI responses. Users are complaining.',
-    },
+    scenario: { role: 'Performance Engineer', context: 'A React app freezes on every keystroke. Users are furious.' },
     challenges: [
       {
-        id: 'c7_1',
-        type: 'CONCEPT_CHECK',
-        title: 'Virtual DOM',
-        prompt: 'Why do we need a Virtual DOM? Why is direct DOM manipulation slow for AI chat UIs?',
-        initialAiMessage: "The browser already has a DOM. Why add another layer? Isn't that making things slower?",
+        id: 'c3_1', type: 'CONCEPT_CHECK', title: 'Virtual DOM',
+        prompt: 'Why do we need a Virtual DOM? Why is direct DOM manipulation slow?',
+        aiOpener: "The browser already has a DOM. Why add another layer? That's slower, not faster.",
+        aiPersona: 'skeptical_executive',
         required_concepts: [
           [
-            { term: 'batch', synonyms: ['batching', 'batches', 'groups', 'combines', 'collects', 'gathers'], weight: 3 },
+            { term: 'batch', synonyms: ['batching', 'batches', 'groups', 'combines', 'collects'], weight: 3 },
             { term: 'diff', synonyms: ['diffing', 'compare', 'comparison', 'reconciliation', 'reconcile', 'checks what changed'], weight: 3 },
           ],
-          [
-            { term: 'repaint', synonyms: ['reflow', 'expensive', 'slow', 'layout', 're-render', 'redraw', 'costly'], weight: 2 },
-          ],
+          [{ term: 'repaint', synonyms: ['reflow', 'expensive', 'slow', 'layout', 're-render', 'redraw', 'costly'], weight: 2 }],
         ],
         forbidden_terms: [],
-        min_word_count: 20,
-        max_reading_level: null,
-        xp_reward: 125,
-        partial_xp_reward: 50,
-        hint: "Talk about 'batching' updates or 'diffing' changes.",
+        min_word_count: 20, max_reading_level: null,
+        xp_reward: 125, partial_xp_reward: 50,
+        hint: "Talk about 'batching' updates or 'diffing'.",
       },
       {
-        id: 'c7_2',
-        type: 'TEACH_BACK',
-        title: 'ELI5: React',
-        prompt: 'Explain React re-rendering to someone who only knows HTML and wants to build AI tools.',
-        initialAiMessage: "I know HTML. I make web pages. Why do I need this React thing to build an AI chatbot?",
+        id: 'c3_2', type: 'TEACH_BACK', title: 'ELI5: React',
+        prompt: 'Explain React re-rendering to someone who only knows HTML.',
+        aiOpener: "I know HTML. My pages work fine. Why do I need this React thing?",
+        aiPersona: 'curious_child',
         required_concepts: [
-          [
-            { term: 'update', synonyms: ['updates', 'changes', 'change', 'refresh', 'modify', 'auto'], weight: 3 },
-          ],
-          [
-            { term: 'page', synonyms: ['screen', 'display', 'view', 'website', 'app', 'interface'], weight: 1 },
-          ],
+          [{ term: 'update', synonyms: ['updates', 'changes', 'change', 'refresh', 'modify', 'auto'], weight: 3 }],
+          [{ term: 'page', synonyms: ['screen', 'display', 'view', 'website', 'app', 'interface'], weight: 1 }],
         ],
         forbidden_terms: [
-          { term: 'virtual dom', hint: 'Just say "it keeps a draft copy" or "blueprint".' },
-          { term: 'reconciliation', hint: 'Way too technical. Say "figures out what changed".' },
-          { term: 'fiber', hint: 'Skip this \u2014 say "it works in small steps".' },
-          { term: 'jsx', hint: 'Say "HTML-like code" or "template".' },
+          { term: 'virtual dom', hint: '"draft copy" or "blueprint"' },
+          { term: 'reconciliation', hint: '"figures out what changed"' },
+          { term: 'fiber', hint: '"works in small steps"' },
+          { term: 'jsx', hint: '"HTML-like code"' },
         ],
-        min_word_count: 20,
-        max_reading_level: 8,
-        xp_reward: 125,
-        partial_xp_reward: 50,
-        hint: 'Compare it to reloading vs. surgically updating parts of the page.',
+        min_word_count: 20, max_reading_level: 8,
+        xp_reward: 125, partial_xp_reward: 50,
+        hint: 'Compare reloading vs. surgically updating parts.',
       },
     ],
   },
 ];
 
 // ============================================================================
-// 4. SEMANTIC VALIDATION ENGINE
+// 3. SEMANTIC VALIDATION ENGINE + NEURAL WEIGHT
 // ============================================================================
 
-// -- Lightweight Stemmer --
-
-const STEM_SUFFIXES = [
-  'ingly', 'ation', 'ment', 'ness', 'able', 'ible',
-  'ting', 'ing', 'ies', 'ied', 'ion', 'ous', 'ive',
-  'ly', 'ed', 'er', 'es', 'al', 'en',
-  's',
-];
-
-function stem(word) {
-  let w = word.toLowerCase();
-  if (w.length <= 3) return w;
-  for (const suffix of STEM_SUFFIXES) {
-    if (w.endsWith(suffix) && w.length - suffix.length >= 3) {
-      return w.slice(0, w.length - suffix.length);
-    }
-  }
-  return w;
+function normalize(t) {
+  return t.toLowerCase().replace(/[''"]/g, '').replace(/[^\w\s-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
-
-// -- Text Processing --
-
-function normalize(text) {
-  return text
-    .toLowerCase()
-    .replace(/[''""]/g, '')
-    .replace(/[^\w\s-]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function tokenize(text) {
-  return normalize(text).split(' ').filter(Boolean);
-}
+function tokenize(t) { return normalize(t).split(' ').filter(Boolean); }
 
 function buildNGrams(tokens, maxN = 3) {
-  const grams = new Set();
-  const stemmedGrams = new Set();
-
-  for (const token of tokens) {
-    grams.add(token);
-    stemmedGrams.add(stem(token));
-  }
-  for (let n = 2; n <= Math.min(maxN, tokens.length); n++) {
-    for (let i = 0; i <= tokens.length - n; i++) {
-      grams.add(tokens.slice(i, i + n).join(' '));
-      stemmedGrams.add(tokens.slice(i, i + n).map(stem).join(' '));
-    }
-  }
-  return { exact: grams, stemmed: stemmedGrams };
+  const g = new Set();
+  tokens.forEach(t => g.add(t));
+  for (let n = 2; n <= Math.min(maxN, tokens.length); n++)
+    for (let i = 0; i <= tokens.length - n; i++)
+      g.add(tokens.slice(i, i + n).join(' '));
+  return g;
 }
 
-// -- Flesch-Kincaid Reading Level --
-
-function countSyllables(word) {
-  const w = word.toLowerCase().replace(/[^a-z]/g, '');
+function countSyllables(w) {
+  w = w.toLowerCase().replace(/[^a-z]/g, '');
   if (w.length <= 2) return 1;
-  const vowelGroups = w.match(/[aeiouy]+/g);
-  let count = vowelGroups ? vowelGroups.length : 1;
-  if (w.endsWith('e') && !w.endsWith('le') && count > 1) count--;
-  if (w.endsWith('ed') && !w.endsWith('ted') && !w.endsWith('ded')) {
-    count = Math.max(1, count - 1);
-  }
-  return Math.max(1, count);
+  const vg = w.match(/[aeiouy]+/g);
+  let c = vg ? vg.length : 1;
+  if (w.endsWith('e') && !w.endsWith('le') && c > 1) c--;
+  if (w.endsWith('ed') && !w.endsWith('ted') && !w.endsWith('ded')) c = Math.max(1, c - 1);
+  return Math.max(1, c);
 }
 
-function computeReadingLevel(text) {
-  const sentences = text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+function readingLevel(text) {
+  const sents = text.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
   const words = tokenize(text);
-  if (sentences.length === 0 || words.length === 0) return 0;
-
-  const totalSyllables = words.reduce((sum, w) => sum + countSyllables(w), 0);
-  const avgWordsPerSentence = words.length / sentences.length;
-  const avgSyllablesPerWord = totalSyllables / words.length;
-
-  const grade = 0.39 * avgWordsPerSentence + 11.8 * avgSyllablesPerWord - 15.59;
-  return Math.max(0, Math.round(grade * 10) / 10);
+  if (!sents.length || !words.length) return 0;
+  const syl = words.reduce((s, w) => s + countSyllables(w), 0);
+  return Math.max(0, Math.round((0.39 * (words.length / sents.length) + 11.8 * (syl / words.length) - 15.59) * 10) / 10);
 }
 
-// -- Concept Matching (with stemmed fallback) --
-
-function conceptPresent(conceptObj, ngrams) {
-  const normalizedTerm = normalize(conceptObj.term);
-
-  if (ngrams.exact.has(normalizedTerm)) return conceptObj.term;
-
-  if (conceptObj.synonyms) {
-    for (const syn of conceptObj.synonyms) {
-      if (ngrams.exact.has(normalize(syn))) return syn;
-    }
-  }
-
-  const stemmedTerm = normalizedTerm.split(' ').map(stem).join(' ');
-  if (ngrams.stemmed.has(stemmedTerm)) return conceptObj.term;
-
-  if (conceptObj.synonyms) {
-    for (const syn of conceptObj.synonyms) {
-      const stemmedSyn = normalize(syn).split(' ').map(stem).join(' ');
-      if (ngrams.stemmed.has(stemmedSyn)) return syn;
-    }
-  }
-
+function conceptMatch(c, ng) {
+  if (ng.has(normalize(c.term))) return c.term;
+  if (c.synonyms) for (const s of c.synonyms) if (ng.has(normalize(s))) return s;
   return null;
 }
 
-function matchConceptGroups(conceptGroups, ngrams) {
-  const results = [];
-
-  for (let gi = 0; gi < conceptGroups.length; gi++) {
-    const group = conceptGroups[gi];
-    let bestMatch = null;
-
-    for (const concept of group) {
-      const match = conceptPresent(concept, ngrams);
-      if (match !== null) {
-        const weight = concept.weight || 1;
-        if (!bestMatch || weight > bestMatch.weight) {
-          bestMatch = { term: match, weight };
-        }
-      }
+function matchGroups(groups, ng) {
+  return groups.map((grp, gi) => {
+    let best = null;
+    for (const c of grp) {
+      const m = conceptMatch(c, ng);
+      if (m && (!best || (c.weight || 1) > best.weight)) best = { term: m, weight: c.weight || 1 };
     }
-
-    const groupMaxWeight = Math.max(...group.map(c => c.weight || 1));
-
-    results.push({
-      groupIndex: gi,
-      matched: bestMatch !== null,
-      matchedTerm: bestMatch?.term ?? null,
-      weight: bestMatch?.weight ?? groupMaxWeight,
-      maxWeight: groupMaxWeight,
-    });
-  }
-
-  return results;
+    return { gi, hit: !!best, term: best?.term, weight: best?.weight ?? Math.max(...grp.map(c => c.weight || 1)), max: Math.max(...grp.map(c => c.weight || 1)) };
+  });
 }
 
-// -- Forbidden Term Detection --
+function findForbidden(norm, terms) {
+  return (terms || []).filter(f => norm.includes(normalize(f.term))).map(f => ({ term: f.term, hint: f.hint }));
+}
 
-function detectForbiddenTerms(normalizedText, forbiddenTerms) {
-  if (!forbiddenTerms || forbiddenTerms.length === 0) return [];
-  const violations = [];
-  for (const ftg of forbiddenTerms) {
-    const normalizedTerm = normalize(ftg.term);
-    if (normalizedText.includes(normalizedTerm)) {
-      violations.push({ term: ftg.term, hint: ftg.hint });
+// ── Real-time concept detection (for live pulse) ──
+function liveConceptScan(input, challenge) {
+  const ng = buildNGrams(tokenize(input));
+  const groups = challenge.required_concepts;
+  let matched = 0;
+  let total = groups.length;
+  const hits = [];
+  for (const grp of groups) {
+    for (const c of grp) {
+      const m = conceptMatch(c, ng);
+      if (m) { matched++; hits.push(m); break; }
     }
   }
-  return violations;
+  // Forbidden live scan
+  const norm = normalize(input);
+  const jargon = findForbidden(norm, challenge.forbidden_terms);
+  return { matched, total, ratio: total > 0 ? matched / total : 0, hits, jargon };
 }
 
-// -- Depth Heuristic --
+// ── Full evaluation with Neural Weight ──
+const PASS = 70, PARTIAL_T = 40, F_PEN = 15, R_PEN = 20, SHORT_CAP = 30;
 
-const DEPTH_MARKERS = [
-  'because', 'therefore', 'since', 'so that', 'this means',
-  'for example', 'for instance', 'such as', 'in other words',
-  'the reason', 'which means', 'as a result', 'instead of',
-  'rather than', 'unlike', 'however', 'although',
-];
-
-function computeDepthBonus(normalizedText) {
-  let hits = 0;
-  for (const marker of DEPTH_MARKERS) {
-    if (normalizedText.includes(marker)) hits++;
-  }
-  return Math.min(10, hits * 2);
-}
-
-// -- Main Evaluation Function --
-
-const PASS_THRESHOLD = 70;
-const PARTIAL_THRESHOLD = 40;
-const FORBIDDEN_PENALTY = 15;
-const READING_LEVEL_PENALTY = 20;
-const MIN_WORDS_SCORE_CAP = 30;
-
-/**
- * The core semantic validation engine.
- *
- * Pipeline:
- *   1. Normalize + tokenize + build n-grams (exact & stemmed)
- *   2. Word count gate (too short -> score capped at 30)
- *   3. Forbidden term scan (TEACH_BACK: -15 per jargon word)
- *   4. Concept matching (nested AND/OR with weighted scoring + stemmed fallback)
- *   5. Depth bonus (causal connectives / examples -> up to +10)
- *   6. Reading level check (TEACH_BACK: -20 if too complex)
- *   7. Weighted score -> pass / partial / fail
- *
- * Thresholds: >=70 PASS, 40-69 PARTIAL, <40 FAIL
- */
-function evaluateAnswer(input, challenge) {
-  const normalizedInput = normalize(input);
+function evaluate(input, challenge, startTime) {
+  const norm = normalize(input);
   const tokens = tokenize(input);
-  const ngrams = buildNGrams(tokens);
-  const feedback = [];
-  const isTeachBack = challenge.type === 'TEACH_BACK';
+  const ng = buildNGrams(tokens);
+  const fb = [];
+  const isTeach = challenge.type === 'TEACH_BACK';
 
-  // Step 1: Word Count Gate
-  const minWords = challenge.min_word_count || 10;
-  const wordCountPassed = tokens.length >= minWords;
+  const minW = challenge.min_word_count || 10;
+  const wcOk = tokens.length >= minW;
+  if (!wcOk) fb.push(`Too brief — ${tokens.length}/${minW} words.`);
 
-  if (!wordCountPassed) {
-    feedback.push(
-      `Too brief \u2014 ${tokens.length} words. Aim for at least ${minWords} to show understanding.`
-    );
+  const forbidden = isTeach ? findForbidden(norm, challenge.forbidden_terms) : [];
+  if (forbidden.length) {
+    fb.push('⚡ JARGON BREACH:');
+    forbidden.forEach(v => fb.push(`   "${v.term}" → ${v.hint}`));
   }
 
-  // Step 2: Forbidden Terms (TEACH_BACK only)
-  const forbiddenViolations = isTeachBack
-    ? detectForbiddenTerms(normalizedInput, challenge.forbidden_terms)
-    : [];
+  const concepts = matchGroups(challenge.required_concepts, ng);
+  const totalW = concepts.reduce((s, c) => s + c.max, 0);
+  const matchedW = concepts.filter(c => c.hit).reduce((s, c) => s + c.weight, 0);
+  const missed = concepts.filter(c => !c.hit);
 
-  if (forbiddenViolations.length > 0) {
-    feedback.push('\uD83C\uDFAF Jargon detected! Keep it simple:');
-    for (const v of forbiddenViolations) {
-      feedback.push(` \u2022 "${v.term}" \u2192 ${v.hint}`);
-    }
-  }
-
-  // Step 3: Concept Matching (with stemmed fallback)
-  const conceptResults = matchConceptGroups(challenge.required_concepts, ngrams);
-
-  const totalWeight = conceptResults.reduce((sum, c) => sum + c.maxWeight, 0);
-  const matchedWeight = conceptResults
-    .filter(c => c.matched)
-    .reduce((sum, c) => sum + c.weight, 0);
-
-  const missedGroups = conceptResults.filter(c => !c.matched);
-  if (missedGroups.length > 0) {
-    feedback.push(
-      `You covered ${conceptResults.length - missedGroups.length}/${conceptResults.length} key concept areas.`
-    );
-    if (challenge.hint) {
-      feedback.push(`\uD83D\uDCA1 Hint: ${challenge.hint}`);
-    }
+  if (missed.length) {
+    fb.push(`Covered ${concepts.length - missed.length}/${concepts.length} neural pathways.`);
+    if (challenge.hint) fb.push(`↳ ${challenge.hint}`);
   } else {
-    feedback.push('\u2705 All key concepts covered!');
+    fb.push('✦ All neural pathways activated.');
   }
 
-  // Step 4: Depth Bonus
-  const depthBonus = computeDepthBonus(normalizedInput);
-
-  // Step 5: Reading Level (TEACH_BACK only)
-  let readingLevelResult = null;
-  if (isTeachBack && challenge.max_reading_level != null && tokens.length >= 10) {
-    const actualLevel = computeReadingLevel(input);
-    const passed = actualLevel <= challenge.max_reading_level;
-    readingLevelResult = { actual: actualLevel, max: challenge.max_reading_level, passed };
-
-    if (!passed) {
-      feedback.push(
-        `\uD83D\uDCD6 Language too complex (grade ${actualLevel}). Use shorter sentences and simpler words \u2014 aim for grade ${challenge.max_reading_level} or lower.`
-      );
-    }
+  let rl = null;
+  if (isTeach && challenge.max_reading_level != null && tokens.length >= 10) {
+    const actual = readingLevel(input);
+    const ok = actual <= challenge.max_reading_level;
+    rl = { actual, max: challenge.max_reading_level, passed: ok };
+    if (!ok) fb.push(`Complexity grade ${actual} → simplify to grade ${challenge.max_reading_level}.`);
   }
 
-  // Step 6: Score Calculation
-  let baseScore = totalWeight > 0 ? (matchedWeight / totalWeight) * 100 : 0;
-  baseScore = Math.min(100, baseScore + depthBonus);
+  let score = totalW > 0 ? (matchedW / totalW) * 100 : 0;
+  score -= forbidden.length * F_PEN;
+  if (rl && !rl.passed) score -= R_PEN;
+  if (!wcOk) score = Math.min(score, SHORT_CAP);
+  score = Math.max(0, Math.min(100, Math.round(score)));
 
-  const forbiddenPenalty = forbiddenViolations.length * FORBIDDEN_PENALTY;
-  const readingPenalty = readingLevelResult && !readingLevelResult.passed ? READING_LEVEL_PENALTY : 0;
+  // ── Neural Weight: Accuracy × Efficiency × Velocity ──
+  const elapsed = (Date.now() - startTime) / 1000;
+  const efficiency = Math.max(0.5, 1 - (tokens.length / 200)); // Brevity bonus
+  const velocity = elapsed < 30 ? 1.25 : elapsed < 60 ? 1.1 : elapsed < 120 ? 1.0 : 0.85;
+  const neuralWeight = Math.round(score * efficiency * velocity);
 
-  let finalScore = baseScore - forbiddenPenalty - readingPenalty;
+  let status = 'FAIL', xpEarned = 0, passed = false;
+  const xpR = challenge.xp_reward || 100;
+  const pXP = challenge.partial_xp_reward || Math.round(xpR * 0.4);
 
-  if (!wordCountPassed) {
-    finalScore = Math.min(finalScore, MIN_WORDS_SCORE_CAP);
+  if (score >= PASS) {
+    passed = true; xpEarned = xpR; status = 'PASS';
+  } else if (score >= PARTIAL_T) {
+    xpEarned = pXP; status = 'PARTIAL';
   }
 
-  finalScore = Math.max(0, Math.min(100, Math.round(finalScore)));
-
-  // Step 7: Determine Result
-  let passed = false;
-  let xpEarned = 0;
-  let status = 'FAIL';
-
-  const xpReward = challenge.xp_reward || 100;
-  const partialXP = challenge.partial_xp_reward || Math.round(xpReward * 0.4);
-
-  if (finalScore >= PASS_THRESHOLD) {
-    passed = true;
-    xpEarned = xpReward;
-    status = 'PASS';
-    feedback.unshift(`\uD83D\uDD25 GURU STATUS ACHIEVED \u2014 Score: ${finalScore}/100`);
-  } else if (finalScore >= PARTIAL_THRESHOLD) {
-    xpEarned = partialXP;
-    status = 'PARTIAL';
-    feedback.unshift(`\u26A1 Almost! Score: ${finalScore}/100 \u2014 Partial XP earned. Try again for full credit!`);
-  } else {
-    feedback.unshift(`\uD83D\uDCAA Score: ${finalScore}/100 \u2014 Re-watch the video and try again.`);
-  }
+  // ── Clarity Level ──
+  const clarity = score >= 85 ? 'CRYSTAL' : score >= 70 ? 'CLEAR' : score >= 50 ? 'HAZY' : 'MUDDY';
 
   return {
-    passed,
-    score: finalScore,
-    xpEarned,
-    status,
-    feedback,
-    breakdown: {
-      concepts: conceptResults,
-      forbidden: forbiddenViolations,
-      wordCount: { actual: tokens.length, required: minWords, passed: wordCountPassed },
-      readingLevel: readingLevelResult,
-      depthBonus,
-    },
+    passed, score, xpEarned, status, feedback: fb, neuralWeight, clarity,
+    velocity: velocity > 1 ? 'FAST' : velocity < 1 ? 'SLOW' : 'STEADY',
+    efficiency: Math.round(efficiency * 100),
+    elapsed: Math.round(elapsed),
+    breakdown: { concepts, forbidden, wordCount: { actual: tokens.length, required: minW, passed: wcOk }, readingLevel: rl },
   };
 }
 
 // ============================================================================
-// 5. XP PERSISTENCE HOOK
+// 4. AI AGENT — Persona-driven response generator
 // ============================================================================
 
-const STORAGE_KEY = '@kesandu_guru_xp';
+// This is the "Ghost in the Machine" — it generates contextual, persona-driven
+// responses that make the AI feel alive, not just a validator.
 
-function xpForLevel(level) {
-  return Math.floor(100 * Math.pow(1.4, level - 1));
+const AI_PERSONAS = {
+  skeptical_executive: {
+    name: 'The Executive',
+    avatar: '🏢',
+    passResponses: [
+      "Alright, that actually makes sense. I'll stop telling the board it's magic. Your neural weight is impressive.",
+      "Okay, I'm convinced. You didn't just know it — you explained it like someone who's built one. Guru status earned.",
+      "That's the clearest explanation I've heard in 47 board meetings. You've earned my respect.",
+    ],
+    partialResponses: [
+      "I see where you're going, but my board needs a tighter pitch. You're close — tighten up the core concept.",
+      "Almost there. You've got the intuition but the precision isn't quite boardroom-ready.",
+      "Interesting angle, but I could poke holes in it. Shore up the fundamentals.",
+    ],
+    failResponses: [
+      "I'm still confused, and I run a billion-dollar company. Try again — pretend my money depends on understanding this.",
+      "If I presented this to my board, they'd fire me. Let's go deeper.",
+      "That felt like a Wikipedia summary. I need understanding, not recitation.",
+    ],
+  },
+  curious_child: {
+    name: 'Little Genius',
+    avatar: '👶',
+    passResponses: [
+      "Ohhhh! So it's like a guessing game! I get it now! You're really good at explaining things! ⭐",
+      "That was SO cool! Even my teddy bear could understand that! You're a super teacher!",
+      "WOW! Now I can tell my friends how computers write! You made it so easy!",
+    ],
+    partialResponses: [
+      "Hmm, I kinda get it... but some words were too big. Can you use smaller words?",
+      "I understand a little bit! But what does that big word mean? Try again simpler?",
+      "Almost! But my brain got confused in the middle. Can you use a story?",
+    ],
+    failResponses: [
+      "I don't understand... 😢 You used grown-up words. Can you try again like you're talking to me at the playground?",
+      "That made my head hurt! Too many hard words! Try again but pretend I'm really really little.",
+      "Huh? I'm 5! I don't know what those words mean! Use small words please!",
+    ],
+  },
+  confused_junior: {
+    name: 'Junior Dev',
+    avatar: '💻',
+    passResponses: [
+      "OH. Oh wow. That actually clicks now. I've been thinking about this wrong the whole time. Thank you!",
+      "Wait — so it's THAT simple? I overcomplicated it in my head. This is a lightbulb moment. 💡",
+      "Okay I literally just had a breakthrough. I'm screenshotting this. Guru certified.",
+    ],
+    partialResponses: [
+      "I think I'm getting closer... but I'm still fuzzy on one part. Can you connect the dots more?",
+      "Hmm, some of that landed but I'm still shaky. Try a different angle?",
+      "I see pieces of it but the full picture isn't clicking yet.",
+    ],
+    failResponses: [
+      "I'm sorry, I'm still lost. Maybe try explaining it like I literally started coding yesterday?",
+      "That went over my head. I need something more concrete — like an example I can picture.",
+      "I wish I understood that but honestly I'm more confused now. Start from the basics?",
+    ],
+  },
+};
+
+function generateAIResponse(result, challenge) {
+  const persona = AI_PERSONAS[challenge.aiPersona] || AI_PERSONAS.skeptical_executive;
+  let pool;
+  if (result.status === 'PASS') pool = persona.passResponses;
+  else if (result.status === 'PARTIAL') pool = persona.partialResponses;
+  else pool = persona.failResponses;
+
+  const response = pool[Math.floor(Math.random() * pool.length)];
+  return { text: response, persona };
 }
 
-function computeLevel(totalXP) {
-  let level = 1;
-  let accumulated = 0;
-  while (accumulated + xpForLevel(level) <= totalXP) {
-    accumulated += xpForLevel(level);
-    level++;
-  }
-  return level;
-}
+// ============================================================================
+// 5. XP + SYNAPSE PERSISTENCE
+// ============================================================================
+
+const XP_KEY = '@kesandu_v3';
+const PREFS_KEY = '@kesandu_prefs';
+const ONBOARD_KEY = '@kesandu_onboarded';
+
+function xpForLv(lv) { return Math.floor(100 * Math.pow(1.4, lv - 1)); }
+function calcLv(xp) { let lv = 1, acc = 0; while (acc + xpForLv(lv) <= xp) { acc += xpForLv(lv); lv++; } return lv; }
 
 function useXP() {
-  const [totalXP, setTotalXP] = useState(0);
-  const [completedChallenges, setCompletedChallenges] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+  const [xp, setXP] = useState(0);
+  const [done, setDone] = useState({});
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const data = JSON.parse(stored);
-          setTotalXP(data.totalXP || 0);
-          setCompletedChallenges(data.completedChallenges || []);
-        }
-      } catch (e) {
-        console.warn('Failed to load XP:', e);
-      }
-      setLoaded(true);
-    })();
+    AsyncStorage.getItem(XP_KEY).then(raw => {
+      if (raw) { const d = JSON.parse(raw); setXP(d.xp || 0); setDone(d.done || {}); }
+      setReady(true);
+    }).catch(() => setReady(true));
   }, []);
 
   useEffect(() => {
-    if (!loaded) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ totalXP, completedChallenges })).catch(() => {});
-  }, [totalXP, completedChallenges, loaded]);
+    if (ready) AsyncStorage.setItem(XP_KEY, JSON.stringify({ xp, done })).catch(() => {});
+  }, [xp, done, ready]);
 
-  const awardXP = useCallback((xp, challengeId) => {
-    setTotalXP(prev => prev + xp);
-    if (challengeId && !completedChallenges.includes(challengeId)) {
-      setCompletedChallenges(prev => [...prev, challengeId]);
-    }
-  }, [completedChallenges]);
+  const award = useCallback((pts, cid, nw) => {
+    if (cid && done[cid]) return;
+    setXP(p => p + pts);
+    if (cid) setDone(p => ({ ...p, [cid]: { ts: Date.now(), nw: nw || 0 } }));
+  }, [done]);
 
-  const level = computeLevel(totalXP);
-  const currentLevelXP = totalXP - Array.from(
-    { length: level - 1 },
-    (_, i) => xpForLevel(i + 1)
-  ).reduce((a, b) => a + b, 0);
-  const nextLevelXP = xpForLevel(level);
-  const isComplete = useCallback((id) => completedChallenges.includes(id), [completedChallenges]);
+  const reset = useCallback(() => {
+    setXP(0);
+    setDone({});
+  }, []);
 
-  const getModuleProgress = useCallback((moduleItem) => {
-    const total = moduleItem.challenges.length;
-    const done = moduleItem.challenges.filter(c => completedChallenges.includes(c.id)).length;
-    return { done, total, isGuru: done === total && total > 0 };
-  }, [completedChallenges]);
+  const isDone = useCallback((id) => !!done[id], [done]);
+  const getSynapse = useCallback((id) => done[id] || null, [done]);
 
-  return { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress };
+  const lv = calcLv(xp);
+  const lvXP = xp - Array.from({ length: lv - 1 }, (_, i) => xpForLv(i + 1)).reduce((a, b) => a + b, 0);
+  const nextXP = xpForLv(lv);
+
+  return { xp, lv, lvXP, nextXP, award, isDone, getSynapse, done, ready, reset };
+}
+
+function usePreferences() {
+  const [prefs, setPrefs] = useState({ haptics: true, reduceMotion: false });
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(PREFS_KEY).then(raw => {
+      if (raw) setPrefs(p => ({ ...p, ...JSON.parse(raw) }));
+      setReady(true);
+    }).catch(() => setReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (ready) AsyncStorage.setItem(PREFS_KEY, JSON.stringify(prefs)).catch(() => {});
+  }, [prefs, ready]);
+
+  const update = useCallback((patch) => {
+    setPrefs(prev => ({ ...prev, ...patch }));
+  }, []);
+
+  return { prefs, update, ready };
+}
+
+function useOnboarding() {
+  const [seen, setSeen] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARD_KEY).then(raw => {
+      if (raw === 'true') setSeen(true);
+      setReady(true);
+    }).catch(() => setReady(true));
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setSeen(true);
+    AsyncStorage.setItem(ONBOARD_KEY, 'true').catch(() => {});
+  }, []);
+
+  return { seen, ready, dismiss };
 }
 
 // ============================================================================
-// 6. COMPONENTS
+// 6. ANIMATED COMPONENTS
 // ============================================================================
 
-// -- Score Bar Component --
-
-const ScoreBar = ({ score, status }) => {
-  const barWidth = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(barWidth, {
-      toValue: score,
-      duration: 800,
-      useNativeDriver: false,
-    }).start();
-  }, [score, barWidth]);
-
-  const color = status === 'PASS'
-    ? THEME.success
-    : status === 'PARTIAL'
-      ? THEME.partial
-      : THEME.danger;
-
-  return (
-    <View style={styles.scoreBarContainer}>
-      <View style={styles.scoreBarTrack}>
-        <Animated.View
-          style={[
-            styles.scoreBarFill,
-            {
-              backgroundColor: color,
-              width: barWidth.interpolate({
-                inputRange: [0, 100],
-                outputRange: ['0%', '100%'],
-              }),
-            },
-          ]}
-        />
-      </View>
-      <Text style={[styles.scoreLabel, { color }]}>{score}/100</Text>
-    </View>
-  );
-};
-
-// -- Concept Breakdown Component --
-
-const ConceptBreakdown = ({ breakdown }) => {
-  if (!breakdown) return null;
-
-  return (
-    <View style={styles.breakdownContainer}>
-      <Text style={styles.breakdownTitle}>CONCEPT COVERAGE</Text>
-      {breakdown.concepts.map((c, i) => (
-        <View key={i} style={styles.breakdownRow}>
-          <Text style={{ fontSize: 14 }}>{c.matched ? '\u2705' : '\u274C'}</Text>
-          <Text style={styles.breakdownText}>
-            Area {c.groupIndex + 1}
-            {c.matchedTerm ? ` \u2014 "${c.matchedTerm}"` : ' \u2014 not detected'}
-          </Text>
-          <View style={[styles.weightBadge, { opacity: c.weight / 3 }]}>
-            <Text style={styles.weightText}>{'\u00D7'}{c.weight}</Text>
-          </View>
-        </View>
-      ))}
-
-      <View style={styles.breakdownRow}>
-        <Text style={{ fontSize: 14 }}>{breakdown.wordCount.passed ? '\u2705' : '\u26A0\uFE0F'}</Text>
-        <Text style={styles.breakdownText}>
-          Words: {breakdown.wordCount.actual}/{breakdown.wordCount.required}
-        </Text>
-      </View>
-
-      {breakdown.depthBonus > 0 && (
-        <View style={styles.breakdownRow}>
-          <Text style={{ fontSize: 14 }}>{'\uD83E\uDDE0'}</Text>
-          <Text style={styles.breakdownText}>
-            Depth bonus: +{breakdown.depthBonus} pts
-          </Text>
-        </View>
-      )}
-
-      {breakdown.readingLevel && (
-        <View style={styles.breakdownRow}>
-          <Text style={{ fontSize: 14 }}>{breakdown.readingLevel.passed ? '\u2705' : '\u26A0\uFE0F'}</Text>
-          <Text style={styles.breakdownText}>
-            Reading level: grade {breakdown.readingLevel.actual} (max {breakdown.readingLevel.max})
-          </Text>
-        </View>
-      )}
-
-      {breakdown.forbidden.length > 0 && (
-        <>
-          <Text style={[styles.breakdownTitle, { marginTop: 10, color: THEME.danger }]}>
-            JARGON VIOLATIONS
-          </Text>
-          {breakdown.forbidden.map((v, i) => (
-            <View key={i} style={styles.breakdownRow}>
-              <Text style={{ fontSize: 14 }}>{'\uD83D\uDEAB'}</Text>
-              <Text style={[styles.breakdownText, { color: THEME.danger }]}>
-                "{v.term}" (-{FORBIDDEN_PENALTY} pts)
-              </Text>
-            </View>
-          ))}
-        </>
-      )}
-    </View>
-  );
-};
-
-// -- Guru Badge Component --
-
-const GuruBadge = ({ guruTitle, isGuru, progress }) => {
-  const glowAnim = useRef(new Animated.Value(0.4)).current;
+// ── Glitch Effect ──
+function GlitchOverlay({ active, reduceMotion }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isGuru) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 1, duration: 1200, useNativeDriver: false }),
-          Animated.timing(glowAnim, { toValue: 0.4, duration: 1200, useNativeDriver: false }),
-        ])
-      ).start();
-    }
-  }, [isGuru, glowAnim]);
-
-  if (isGuru) {
-    return (
-      <Animated.View style={[styles.guruBadge, { opacity: glowAnim }]}>
-        <Award size={12} color={THEME.guru} />
-        <Text style={styles.guruBadgeText}>{guruTitle}</Text>
-      </Animated.View>
-    );
-  }
-
-  return (
-    <View style={styles.progressBadge}>
-      <Text style={styles.progressBadgeText}>
-        {progress.done}/{progress.total} mastered
-      </Text>
-    </View>
-  );
-};
-
-// -- Guru Celebration Overlay --
-
-const GuruCelebration = ({ visible, guruTitle, onDismiss }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible) {
+    if (!active || reduceMotion) return;
+    Animated.sequence([
       Animated.parallel([
-        Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 3, useNativeDriver: true }),
-        Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-      ]).start();
-    } else {
-      scaleAnim.setValue(0);
-      opacityAnim.setValue(0);
-    }
-  }, [visible, scaleAnim, opacityAnim]);
+        Animated.timing(opacity, { toValue: 1, duration: 50, useNativeDriver: true }),
+        Animated.timing(translateX, { toValue: 8, duration: 50, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(translateX, { toValue: -6, duration: 40, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(translateX, { toValue: 4, duration: 40, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+        Animated.timing(translateX, { toValue: 0, duration: 80, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, [active, reduceMotion, opacity, translateX]);
 
-  if (!visible) return null;
-
+  if (!active || reduceMotion) return null;
   return (
-    <Animated.View style={[styles.celebrationOverlay, { opacity: opacityAnim }]}>
-      <Animated.View style={[styles.celebrationCard, { transform: [{ scale: scaleAnim }] }]}>
-        <Award size={48} color={THEME.guru} />
-        <Text style={styles.celebrationTitle}>GURU UNLOCKED</Text>
-        <Text style={styles.celebrationSubtitle}>{guruTitle}</Text>
-        <Text style={styles.celebrationDesc}>
-          You've mastered all challenges for this topic. You are now a certified guru!
-        </Text>
-        <TouchableOpacity style={styles.celebrationBtn} onPress={onDismiss}>
-          <Text style={styles.celebrationBtnText}>CONTINUE</Text>
-        </TouchableOpacity>
-      </Animated.View>
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity, transform: [{ translateX }], zIndex: 100 }]} pointerEvents="none">
+      <View style={{ flex: 1, backgroundColor: 'rgba(255,51,102,0.08)' }} />
+      <View style={{ position: 'absolute', top: '30%', left: 0, right: 0, height: 2, backgroundColor: T.danger, opacity: 0.6 }} />
+      <View style={{ position: 'absolute', top: '60%', left: 0, right: 0, height: 1, backgroundColor: T.danger, opacity: 0.4 }} />
     </Animated.View>
   );
-};
+}
 
-// -- Chat Engine Component --
+// ── Neural Pulse Bar (real-time concept detection) ──
+function NeuralPulse({ ratio, jargonCount, clarity, reduceMotion }) {
+  const pulseAnim = useRef(new Animated.Value(0.3)).current;
+  const widthAnim = useRef(new Animated.Value(0)).current;
 
-const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
-  const [history, setHistory] = useState([
-    { id: 'init', text: challenge.initialAiMessage, sender: 'ai' },
-  ]);
-  const [input, setInput] = useState('');
-  const [isAiTyping, setIsAiTyping] = useState(false);
-  const [lastResult, setLastResult] = useState(null);
-  const [status, setStatus] = useState('ACTIVE');
+  useEffect(() => {
+    Animated.timing(widthAnim, { toValue: ratio, duration: reduceMotion ? 0 : 300, useNativeDriver: false }).start();
+  }, [ratio, reduceMotion, widthAnim]);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [reduceMotion, pulseAnim]);
+
+  const color = jargonCount > 0 ? T.danger : ratio >= 1 ? T.success : ratio > 0 ? T.primary : T.muted;
+  const label = jargonCount > 0 ? 'JARGON DETECTED' : clarity || (ratio >= 1 ? 'ALL CONCEPTS FOUND' : ratio > 0 ? 'DETECTING CONCEPTS...' : 'AWAITING INPUT');
+
+  return (
+    <View style={sty.pulseContainer}>
+      <View style={sty.pulseTrack}>
+        <Animated.View style={[sty.pulseFill, {
+          backgroundColor: color,
+          width: widthAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+        }]} />
+        {!reduceMotion && <Animated.View style={[sty.pulseGlow, { opacity: pulseAnim, backgroundColor: color }]} />}
+      </View>
+      <View style={sty.pulseInfo}>
+        <Activity size={10} color={color} />
+        <Text style={[sty.pulseLabel, { color }]}>{label}</Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Neural Weight Display ──
+function NeuralWeightBadge({ nw, clarity, velocity, efficiency, elapsed, reduceMotion }) {
+  const scaleAnim = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      scaleAnim.setValue(1);
+      return;
+    }
+    Animated.spring(scaleAnim, { toValue: 1, tension: 80, friction: 8, useNativeDriver: true }).start();
+  }, [reduceMotion, scaleAnim]);
+
+  const clarityColor = clarity === 'CRYSTAL' ? T.primary : clarity === 'CLEAR' ? T.success : clarity === 'HAZY' ? T.partial : T.danger;
+
+  return (
+    <Animated.View style={[sty.nwContainer, { transform: [{ scale: scaleAnim }] }]}>
+      <View style={sty.nwHeader}>
+        <Cpu size={14} color={T.primary} />
+        <Text style={sty.nwTitle}>NEURAL WEIGHT</Text>
+      </View>
+      <Text style={[sty.nwScore, { color: clarityColor }]}>{nw}</Text>
+      <View style={sty.nwRow}>
+        <View style={sty.nwStat}>
+          <Text style={sty.nwStatLabel}>CLARITY</Text>
+          <Text style={[sty.nwStatVal, { color: clarityColor }]}>{clarity}</Text>
+        </View>
+        <View style={[sty.nwDivider]} />
+        <View style={sty.nwStat}>
+          <Text style={sty.nwStatLabel}>VELOCITY</Text>
+          <Text style={[sty.nwStatVal, { color: velocity === 'FAST' ? T.success : velocity === 'SLOW' ? T.danger : T.soft }]}>{velocity}</Text>
+        </View>
+        <View style={[sty.nwDivider]} />
+        <View style={sty.nwStat}>
+          <Text style={sty.nwStatLabel}>EFFICIENCY</Text>
+          <Text style={sty.nwStatVal}>{efficiency}%</Text>
+        </View>
+      </View>
+      <Text style={sty.nwTime}>{elapsed}s response time</Text>
+    </Animated.View>
+  );
+}
+
+// ── Score Bar ──
+function ScoreBar({ score, status, reduceMotion }) {
+  const w = useRef(new Animated.Value(0)).current;
+  useEffect(() => { Animated.timing(w, { toValue: score, duration: reduceMotion ? 0 : 700, useNativeDriver: false }).start(); }, [score, reduceMotion, w]);
+  const c = status === 'PASS' ? T.success : status === 'PARTIAL' ? T.partial : T.danger;
+  return (
+    <View style={sty.sBarRow}>
+      <View style={sty.sBarTrack}>
+        <Animated.View style={[sty.sBarFill, { backgroundColor: c, width: w.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
+      </View>
+      <Text style={[sty.sBarNum, { color: c }]}>{score}</Text>
+    </View>
+  );
+}
+
+// ── Concept Breakdown ──
+function Breakdown({ data }) {
+  if (!data) return null;
+  return (
+    <View style={sty.bd}>
+      <Text style={sty.bdHead}>NEURAL PATHWAYS</Text>
+      {data.concepts.map((c, i) => (
+        <View key={i} style={sty.bdRow}>
+          <View style={[sty.bdDot, { backgroundColor: c.hit ? T.success : T.danger }]} />
+          <Text style={sty.bdText}>
+            Path {i + 1}{c.term ? ` → "${c.term}"` : ' ✗ inactive'}
+          </Text>
+          <Text style={[sty.bdW, { color: c.hit ? T.success : T.muted }]}>×{c.weight}</Text>
+        </View>
+      ))}
+      <View style={sty.bdRow}>
+        <View style={[sty.bdDot, { backgroundColor: data.wordCount.passed ? T.success : T.partial }]} />
+        <Text style={sty.bdText}>Density: {data.wordCount.actual}/{data.wordCount.required} words</Text>
+      </View>
+      {data.readingLevel && (
+        <View style={sty.bdRow}>
+          <View style={[sty.bdDot, { backgroundColor: data.readingLevel.passed ? T.success : T.partial }]} />
+          <Text style={sty.bdText}>Complexity: grade {data.readingLevel.actual} (≤{data.readingLevel.max})</Text>
+        </View>
+      )}
+      {data.forbidden.length > 0 && data.forbidden.map((v, i) => (
+        <View key={'f' + i} style={sty.bdRow}>
+          <View style={[sty.bdDot, { backgroundColor: T.danger }]} />
+          <Text style={[sty.bdText, { color: T.danger }]}>&quot;{v.term}&quot; → {v.hint}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ── Synaptic Map ──
+function SynapticMap({ completions }) {
+  // Build nodes from all challenges across all content
+  const allChallenges = CONTENT.flatMap(c => c.challenges.map(ch => ({
+    ...ch,
+    parentTitle: c.title,
+    parentCategory: c.category,
+  })));
+
+  const nodeCount = allChallenges.length;
+  const centerX = width * 0.5;
+  const centerY = 110;
+
+  return (
+    <View style={sty.mapContainer}>
+      <View style={sty.mapHeader}>
+        <Brain size={16} color={T.synapse} />
+        <Text style={sty.mapTitle}>SYNAPTIC MAP</Text>
+      </View>
+      <Svg width={width - 40} height={220} viewBox={`0 0 ${width - 40} 220`}>
+        <Defs>
+          <RadialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0%" stopColor={T.synapse} stopOpacity="0.6" />
+            <Stop offset="100%" stopColor={T.synapse} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+
+        {/* Synapses (connections) */}
+        {allChallenges.map((ch, i) => {
+          const angle = (i / nodeCount) * Math.PI * 2 - Math.PI / 2;
+          const r = 70;
+          const nx = centerX - 20 + Math.cos(angle) * r;
+          const ny = centerY + Math.sin(angle) * r;
+          const done = completions[ch.id];
+          const decay = done ? Math.max(0.15, 1 - ((Date.now() - done.ts) / (7 * 86400000))) : 0.08;
+
+          return (
+            <G key={ch.id}>
+              {/* Synapse line to center */}
+              <Line
+                x1={centerX - 20} y1={centerY}
+                x2={nx} y2={ny}
+                stroke={done ? T.synapse : T.border}
+                strokeWidth={done ? 2 : 0.5}
+                opacity={done ? decay : 0.15}
+              />
+              {/* Node */}
+              {done && (
+                <SvgCircle cx={nx} cy={ny} r={18} fill="url(#nodeGlow)" />
+              )}
+              <SvgCircle
+                cx={nx} cy={ny} r={10}
+                fill={done ? T.synapse : T.border}
+                opacity={done ? Math.max(0.4, decay) : 0.2}
+                stroke={done ? T.synapse : 'none'}
+                strokeWidth={done ? 1 : 0}
+              />
+              {/* Label */}
+              <SvgText
+                x={nx} y={ny + 22}
+                fill={done ? T.soft : T.muted}
+                fontSize="8"
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                {ch.title.substring(0, 12)}
+              </SvgText>
+              {/* Neural weight */}
+              {done && (
+                <SvgText x={nx} y={ny + 4} fill="#FFF" fontSize="8" textAnchor="middle" fontWeight="bold">
+                  {done.nw || '?'}
+                </SvgText>
+              )}
+            </G>
+          );
+        })}
+
+        {/* Center node (brain) */}
+        <SvgCircle cx={centerX - 20} cy={centerY} r={20} fill={T.synapseDim} stroke={T.synapse} strokeWidth={1.5} />
+        <SvgText x={centerX - 20} y={centerY + 4} fill={T.synapse} fontSize="18" textAnchor="middle">🧠</SvgText>
+      </Svg>
+    </View>
+  );
+}
+
+// ============================================================================
+// 7. CHAT ENGINE — The Neural Dojo
+// ============================================================================
+
+function ChatEngine({ challenge, onDone, onExit, alreadyDone, hapticsEnabled, reduceMotion }) {
+  const [msgs, setMsgs] = useState([]);
+  const [text, setText] = useState('');
+  const [typing, setTyping] = useState(false);
+  const [result, setResult] = useState(null);
+  const [phase, setPhase] = useState('INPUT');
+  const [glitchActive, setGlitchActive] = useState(false);
+  const [liveScan, setLiveScan] = useState({ matched: 0, total: 0, ratio: 0, hits: [], jargon: [] });
+  const startTime = useRef(Date.now());
   const listRef = useRef(null);
+  const lastJargonCount = useRef(0);
 
-  const handleSend = useCallback(() => {
-    if (!input.trim() || isAiTyping) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const tryHaptic = useCallback((fn) => {
+    if (!hapticsEnabled) return;
+    try { fn(); } catch (e) {}
+  }, [hapticsEnabled]);
 
-    const userMsg = { id: Date.now().toString(), text: input, sender: 'user' };
-    setHistory(prev => [...prev, userMsg]);
-    const userInput = input;
-    setInput('');
-    setIsAiTyping(true);
+  // Initialize with AI opener
+  useEffect(() => {
+    const persona = AI_PERSONAS[challenge.aiPersona] || AI_PERSONAS.skeptical_executive;
+    setMsgs([
+      {
+        id: '0',
+        text: challenge.aiOpener,
+        from: 'ai',
+        persona,
+      },
+    ]);
+    startTime.current = Date.now();
+  }, [challenge]);
+
+  // ── Real-time concept scanning as user types ──
+  useEffect(() => {
+    if (!text.trim()) {
+      setLiveScan({ matched: 0, total: challenge.required_concepts.length, ratio: 0, hits: [], jargon: [] });
+      return;
+    }
+    const scan = liveConceptScan(text, challenge);
+    setLiveScan(scan);
+
+    // Trigger glitch on NEW jargon detection
+    if (scan.jargon.length > lastJargonCount.current) {
+      setGlitchActive(true);
+      setTimeout(() => setGlitchActive(false), 350);
+    }
+    lastJargonCount.current = scan.jargon.length;
+
+    // Heartbeat haptics as concepts are found
+    if (scan.matched > 0 && scan.ratio < 1) {
+      tryHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+    } else if (scan.ratio >= 1) {
+      tryHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+    }
+  }, [text, challenge, tryHaptic]);
+
+  const send = useCallback(() => {
+    const val = text.trim();
+    if (!val || typing) return;
+
+    tryHaptic(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+    setMsgs(p => [...p, { id: String(Date.now()), text: val, from: 'user' }]);
+    const userInput = text;
+    setText('');
+    setTyping(true);
     Keyboard.dismiss();
 
     setTimeout(() => {
-      const result = evaluateAnswer(userInput, challenge);
-      setLastResult(result);
+      const res = evaluate(userInput, challenge, startTime.current);
+      const aiRes = generateAIResponse(res, challenge);
+      setResult(res);
 
-      const aiMsg = {
-        id: (Date.now() + 1).toString(),
-        text: result.feedback.join('\n'),
-        sender: 'ai',
-        result,
-      };
+      setMsgs(p => [...p, {
+        id: String(Date.now() + 1),
+        text: aiRes.text,
+        from: 'ai',
+        persona: aiRes.persona,
+        result: res,
+      }]);
+      setTyping(false);
+      setPhase('RESULT');
 
-      setHistory(prev => [...prev, aiMsg]);
-      setIsAiTyping(false);
-
-      if (result.passed) {
-        setStatus('SUCCESS');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else if (result.status === 'PARTIAL') {
-        setStatus('PARTIAL');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      if (res.passed) {
+        tryHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+      } else if (res.status === 'PARTIAL') {
+        tryHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
       } else {
-        setStatus('FAIL');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        tryHaptic(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
       }
-    }, 1000);
-  }, [input, isAiTyping, challenge]);
+    }, 1200);
+  }, [text, typing, challenge, tryHaptic]);
 
-  const handleRetry = useCallback(() => {
-    setStatus('ACTIVE');
-    setLastResult(null);
-    setHistory(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        text: '\uD83D\uDD04 Give it another shot. Think about the feedback above.',
-        sender: 'ai',
-      },
-    ]);
+  const retry = useCallback(() => {
+    setPhase('INPUT');
+    setResult(null);
+    startTime.current = Date.now();
+    setMsgs(p => [...p, { id: String(Date.now()), text: '↻ Neural pathways reset. Try a different approach.', from: 'system' }]);
   }, []);
 
-  const renderMessage = useCallback(({ item }) => {
-    const isAi = item.sender === 'ai';
+  const collect = useCallback(() => {
+    if (result?.xpEarned > 0 && !alreadyDone) {
+      onDone(result.xpEarned, challenge.id, result.neuralWeight);
+    } else {
+      onExit();
+    }
+  }, [result, alreadyDone, challenge.id, onDone, onExit]);
+
+  const renderMsg = useCallback(({ item }) => {
+    if (item.from === 'system') {
+      return (
+        <View style={sty.systemMsg}>
+          <Text style={sty.systemText}>{item.text}</Text>
+        </View>
+      );
+    }
+    const isAi = item.from === 'ai';
     return (
       <View style={{ marginBottom: 16 }}>
-        <View style={[styles.bubble, isAi ? styles.bubbleAi : styles.bubbleUser]}>
-          <Text style={styles.bubbleText}>{item.text}</Text>
+        {isAi && item.persona && (
+          <View style={sty.personaRow}>
+            <Text style={sty.personaAvatar}>{item.persona.avatar}</Text>
+            <Text style={sty.personaName}>{item.persona.name}</Text>
+          </View>
+        )}
+        <View style={[sty.bub, isAi ? sty.bubAi : sty.bubUser]}>
+          <Text style={sty.bubText}>{item.text}</Text>
         </View>
         {item.result && (
-          <View style={{ marginTop: 8 }}>
-            <ScoreBar score={item.result.score} status={item.result.status} />
-            <ConceptBreakdown breakdown={item.result.breakdown} />
+          <View style={{ marginTop: 10 }}>
+            <NeuralWeightBadge
+              nw={item.result.neuralWeight}
+              clarity={item.result.clarity}
+              velocity={item.result.velocity}
+              efficiency={item.result.efficiency}
+              elapsed={item.result.elapsed}
+              reduceMotion={reduceMotion}
+            />
+            <ScoreBar score={item.result.score} status={item.result.status} reduceMotion={reduceMotion} />
+            <Breakdown data={item.result.breakdown} />
             {item.result.xpEarned > 0 && (
-              <View style={styles.xpEarnedBadge}>
-                <Zap size={14} color={THEME.guru} fill={THEME.guru} />
-                <Text style={styles.xpEarnedText}>+{item.result.xpEarned} XP</Text>
+              <View style={sty.xpBadge}>
+                <Zap size={13} color={T.guru} fill={T.guru} />
+                <Text style={sty.xpBadgeText}>+{item.result.xpEarned} XP</Text>
               </View>
             )}
           </View>
         )}
       </View>
     );
-  }, []);
+  }, [reduceMotion]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-      <View style={styles.chatHeader}>
-        <TouchableOpacity onPress={onExit} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <X size={24} color="#FFF" />
+    <SafeAreaView style={sty.chatSafe}>
+      <GlitchOverlay active={glitchActive} reduceMotion={reduceMotion} />
+
+      {/* Header */}
+      <View style={sty.chatHead}>
+        <TouchableOpacity onPress={onExit} style={sty.chatClose} accessibilityLabel="Close chat">
+          <X size={20} color="#FFF" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{challenge.type.replace('_', ' ')}</Text>
-          <Text style={styles.headerSubtitle}>
-            {challenge.type === 'TEACH_BACK' ? '\uD83C\uDF93 Feynman Mode' : '\uD83E\uDDEA Accuracy Mode'}
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={sty.chatType}>
+            {challenge.type === 'TEACH_BACK' ? '🧬 NEURAL TEACH' : '⚡ CONCEPT SCAN'}
           </Text>
         </View>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 36 }} />
       </View>
 
-      <View style={styles.briefBox}>
-        <Target size={14} color={THEME.primary} />
-        <Text style={styles.briefText}>{challenge.prompt}</Text>
+      {/* Challenge prompt */}
+      <View style={sty.promptBox}>
+        <Target size={13} color={T.primary} />
+        <Text style={sty.promptText}>{challenge.prompt}</Text>
       </View>
 
-      {isAlreadyComplete && (
-        <View style={styles.completeBanner}>
-          <CheckCircle size={14} color={THEME.success} />
-          <Text style={styles.completeBannerText}>Already completed \u2014 practice mode (no XP)</Text>
+      {alreadyDone && (
+        <View style={sty.doneBanner}>
+          <CheckCircle size={12} color={T.success} />
+          <Text style={sty.doneLabel}>Completed — practice mode</Text>
         </View>
       )}
 
+      {/* Messages */}
       <FlatList
         ref={listRef}
-        data={history}
-        keyExtractor={i => i.id.toString()}
-        contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+        data={msgs}
+        keyExtractor={i => i.id}
+        contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-        renderItem={renderMessage}
+        renderItem={renderMsg}
       />
 
-      {isAiTyping && (
-        <View style={styles.typingIndicator}>
-          <ActivityIndicator size="small" color={THEME.primary} />
-          <Text style={styles.typingText}>Evaluating your knowledge...</Text>
+      {typing && (
+        <View style={sty.typingRow}>
+          <ActivityIndicator size="small" color={T.synapse} />
+          <Text style={sty.typingLabel}>Processing neural pathways...</Text>
         </View>
       )}
 
+      {/* Real-time Neural Pulse (visible while typing) */}
+      {phase === 'INPUT' && <NeuralPulse ratio={liveScan.ratio} jargonCount={liveScan.jargon.length} reduceMotion={reduceMotion} />}
+
+      {/* Input or Actions */}
       <KeyboardAvoidingView behavior={IS_IOS ? 'padding' : 'height'}>
-        {status === 'ACTIVE' ? (
-          <View style={styles.inputBar}>
+        {phase === 'INPUT' ? (
+          <View style={sty.inputBar}>
             <TextInput
-              style={styles.input}
-              placeholder="Prove your understanding..."
-              placeholderTextColor={THEME.muted}
-              value={input}
-              onChangeText={setInput}
+              style={sty.inputField}
+              placeholder="Channel your understanding..."
+              placeholderTextColor={T.muted}
+              value={text}
+              onChangeText={setText}
               multiline
               maxLength={2000}
             />
             <TouchableOpacity
-              style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]}
-              onPress={handleSend}
-              disabled={!input.trim() || isAiTyping}
+              style={[sty.sendBtn, !text.trim() && { backgroundColor: T.surface }]}
+              onPress={send}
+              disabled={!text.trim() || typing}
+              accessibilityLabel="Send response"
             >
-              <Send size={20} color={input.trim() ? '#000' : '#666'} />
+              <Send size={17} color={text.trim() ? '#000' : '#444'} />
             </TouchableOpacity>
           </View>
         ) : (
-          <View style={styles.actionBar}>
-            {(status === 'FAIL' || status === 'PARTIAL') && (
-              <TouchableOpacity style={styles.retryBtn} onPress={handleRetry}>
-                <RotateCcw size={18} color={THEME.textSoft} />
-                <Text style={styles.retryBtnText}>Try Again</Text>
+          <View style={sty.actionBar}>
+            {result && result.status !== 'PASS' && (
+              <TouchableOpacity style={sty.retryBtn} onPress={retry}>
+                <RotateCcw size={15} color={T.soft} />
+                <Text style={sty.retryLabel}>Retry</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[
-                styles.collectBtn,
-                {
-                  backgroundColor: status === 'SUCCESS'
-                    ? THEME.success
-                    : status === 'PARTIAL'
-                      ? THEME.partial
-                      : THEME.muted,
-                },
-              ]}
-              onPress={() => {
-                if (lastResult && lastResult.xpEarned > 0) {
-                  onComplete(lastResult.xpEarned, challenge.id);
-                } else {
-                  onExit();
-                }
-              }}
+              style={[sty.collectBtn, {
+                backgroundColor: result?.status === 'PASS' ? T.success : result?.status === 'PARTIAL' ? T.partial : T.muted,
+              }]}
+              onPress={collect}
             >
-              <Text style={styles.collectBtnText}>
-                {lastResult?.xpEarned > 0 ? `COLLECT +${lastResult.xpEarned} XP` : 'CLOSE'}
+              <Text style={sty.collectLabel}>
+                {result?.xpEarned > 0 && !alreadyDone ? `ABSORB +${result.xpEarned} XP` : 'EXIT'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1245,970 +1019,516 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
-
-// -- Video Feed Item (Memoized with optimized YouTube Player) --
-
-const PLAYER_PARAMS = Object.freeze({
-  controls: false,
-  modestbranding: true,
-  loop: true,
-  rel: false,
-});
-
-const WEBVIEW_PROPS = Object.freeze({
-  androidLayerType: 'hardware',
-  allowsInlineMediaPlayback: true,
-  scrollEnabled: false,
-});
-
-const VideoFeedItem = React.memo(
-  ({ item, isActive, onEnter, moduleProgress }) => {
-    const [playing, setPlaying] = useState(false);
-    const [isReady, setIsReady] = useState(false);
-
-    useEffect(() => {
-      if (isActive) {
-        setPlaying(true);
-      } else {
-        setPlaying(false);
-        setIsReady(false);
-      }
-    }, [isActive]);
-
-    const onStateChange = useCallback((state) => {
-      if (state === 'playing') setIsReady(true);
-      if (state === 'ended') setPlaying(false);
-    }, []);
-
-    const handlePlay = useCallback(() => setPlaying(true), []);
-    const handleEnter = useCallback(() => onEnter(item), [item, onEnter]);
-
-    return (
-      <View style={{ width, height, backgroundColor: '#000' }}>
-        {isActive ? (
-          <View style={styles.videoContainer}>
-            <YoutubePlayer
-              height={height}
-              width={width}
-              videoId={item.youtubeId}
-              play={playing}
-              onChangeState={onStateChange}
-              initialPlayerParams={PLAYER_PARAMS}
-              webViewProps={WEBVIEW_PROPS}
-            />
-            {!isReady && (
-              <TouchableOpacity style={styles.manualPlayOverlay} onPress={handlePlay}>
-                <Play size={40} color="rgba(255,255,255,0.8)" fill="rgba(255,255,255,0.8)" />
-                <Text style={styles.tapToPlayText}>TAP TO PLAY</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : (
-          <View style={styles.offscreenPlaceholder}>
-            <Play size={32} color="rgba(255,255,255,0.3)" />
-          </View>
-        )}
-
-        <View style={styles.overlay}>
-          <View style={styles.overlayContent}>
-            <View style={styles.categoryRow}>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{item.category}</Text>
-              </View>
-              <GuruBadge
-                guruTitle={item.guruTitle}
-                isGuru={moduleProgress.isGuru}
-                progress={moduleProgress}
-              />
-            </View>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.creator}>{item.creator}</Text>
-
-            {/* Progress bar for this module */}
-            <View style={styles.moduleProgressRow}>
-              <View style={styles.moduleProgressTrack}>
-                <View
-                  style={[
-                    styles.moduleProgressFill,
-                    {
-                      width: `${moduleProgress.total > 0 ? (moduleProgress.done / moduleProgress.total) * 100 : 0}%`,
-                      backgroundColor: moduleProgress.isGuru ? THEME.guru : THEME.primary,
-                    },
-                  ]}
-                />
-              </View>
-              <Text style={[
-                styles.moduleProgressText,
-                moduleProgress.isGuru && { color: THEME.guru },
-              ]}>
-                {moduleProgress.isGuru
-                  ? 'GURU'
-                  : `${moduleProgress.done}/${moduleProgress.total}`}
-              </Text>
-            </View>
-
-            <Text style={styles.challengeCount}>
-              {item.challenges.length} challenge{item.challenges.length > 1 ? 's' : ''} {'\u2022'} +{item.xp} XP
-            </Text>
-
-            <TouchableOpacity
-              style={[
-                styles.dojoBtn,
-                moduleProgress.isGuru && styles.dojoBtnGuru,
-              ]}
-              onPress={handleEnter}
-            >
-              <Brain size={20} color="#000" />
-              <Text style={styles.dojoBtnText}>
-                {moduleProgress.isGuru ? 'REVIEW DOJO' : 'ENTER DOJO'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    );
-  },
-  (prev, next) =>
-    prev.item.id === next.item.id &&
-    prev.isActive === next.isActive &&
-    prev.moduleProgress.done === next.moduleProgress.done
-);
+}
 
 // ============================================================================
-// 7. MAIN APP
+// 8. VIDEO FEED CARD
+// ============================================================================
+
+function FeedCard({ item, active, onDojo, mastery }) {
+  const [playing, setPlaying] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (active) {
+      const t = setTimeout(() => setPlaying(true), 400);
+      return () => clearTimeout(t);
+    }
+    setPlaying(false);
+    setReady(false);
+  }, [active]);
+
+  const onState = useCallback((st) => {
+    if (st === 'playing') setReady(true);
+    if (st === 'ended') setPlaying(false);
+  }, []);
+
+  return (
+    <View style={{ width, height, backgroundColor: '#000' }}>
+      {/* Video layer */}
+      {active ? (
+        <View style={StyleSheet.absoluteFill}>
+          <YoutubePlayer
+            height={height} width={width}
+            videoId={item.youtubeId} play={playing}
+            onChangeState={onState}
+            initialPlayerParams={{ controls: false, modestbranding: true, loop: true, rel: false }}
+            webViewProps={{ androidLayerType: 'hardware', allowsInlineMediaPlayback: true, scrollEnabled: false }}
+          />
+        </View>
+      ) : (
+        <View style={[StyleSheet.absoluteFill, sty.placeholder]}>
+          <Brain size={28} color="rgba(123,97,255,0.2)" />
+          <Text style={sty.phText}>{item.title}</Text>
+        </View>
+      )}
+
+      {/* Tap to play */}
+      {active && !ready && (
+        <Pressable style={[StyleSheet.absoluteFill, sty.tapLayer]} onPress={() => setPlaying(true)}>
+          <View style={sty.playRing}>
+            <Play size={28} color="#FFF" fill="#FFF" />
+          </View>
+          <Text style={sty.tapLabel}>TAP TO ACTIVATE</Text>
+        </Pressable>
+      )}
+
+      {/* Mastery haze — fades as you complete challenges */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0,0,0,${Math.max(0, 0.3 - mastery * 0.3)})` }]} pointerEvents="none" />
+
+      {/* Info overlay */}
+      <View style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end' }]} pointerEvents="box-none">
+        <View style={sty.infoWrap} pointerEvents="box-none">
+          <View style={sty.catPill}>
+            <Text style={sty.catText}>{item.category}</Text>
+          </View>
+          <Text style={sty.vidTitle}>{item.title}</Text>
+          <Text style={sty.vidCreator}>{item.creator}</Text>
+          <Text style={sty.vidMeta}>
+            {item.challenges.length} challenge{item.challenges.length > 1 ? 's' : ''} · +{item.xp} XP
+          </Text>
+
+          <TouchableOpacity style={sty.dojoBtn} onPress={() => onDojo(item)} activeOpacity={0.7}>
+            <Brain size={18} color="#000" />
+            <Text style={sty.dojoBtnText}>ENTER DOJO</Text>
+            <Sparkles size={14} color="#000" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const MemoCard = React.memo(FeedCard, (p, n) => p.item.id === n.item.id && p.active === n.active && p.mastery === n.mastery);
+
+// ============================================================================
+// 9. MAIN APP
 // ============================================================================
 
 export default function App() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [activeModule, setActiveModule] = useState(null);
-  const [activeChallenge, setActiveChallenge] = useState(null);
-  const [showCelebration, setShowCelebration] = useState(null);
-  const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress } = useXP();
+  const [idx, setIdx] = useState(0);
+  const [moduleModal, setModuleModal] = useState(null);
+  const [challengeModal, setChallengeModal] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [appState, setAppState] = useState(AppState.currentState);
+  const { xp, lv, lvXP, nextXP, award, isDone, getSynapse, done, ready, reset } = useXP();
+  const { prefs, update, ready: prefsReady } = usePreferences();
+  const { seen, ready: onboardReady, dismiss } = useOnboarding();
 
-  const guruRank = getGuruRank(totalXP);
-  const nextRank = getNextRank(totalXP);
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 70,
-    minimumViewTime: 300,
-  }).current;
-
-  const onViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (viewableItems.length > 0) {
-      setActiveIndex(viewableItems[0].index);
-    }
-  }).current;
-
-  const getItemLayout = useCallback((_, index) => ({
-    length: height,
-    offset: height * index,
-    index,
-  }), []);
-
-  const handleOpenModule = useCallback((m) => setActiveModule(m), []);
-  const handleCloseModule = useCallback(() => setActiveModule(null), []);
-
-  const handleOpenChallenge = useCallback((c) => {
-    setActiveModule(null);
-    setTimeout(() => setActiveChallenge(c), 350);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', setAppState);
+    return () => sub.remove();
   }, []);
 
-  const handleChallengeComplete = useCallback((xp, challengeId) => {
-    if (!isComplete(challengeId)) {
-      awardXP(xp, challengeId);
-    }
-    setActiveChallenge(null);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const viewConfig = useRef({ itemVisiblePercentThreshold: 60, minimumViewTime: 250 }).current;
+  const onViewChange = useRef(({ viewableItems }) => {
+    if (viewableItems?.length > 0 && viewableItems[0].index != null) setIdx(viewableItems[0].index);
+  }).current;
+  const layout = useCallback((_, i) => ({ length: height, offset: height * i, index: i }), []);
 
-    // Check if this completion unlocks guru status for the module
-    setTimeout(() => {
-      for (const mod of CONTENT_DATA) {
-        const allDone = mod.challenges.every(
-          c => c.id === challengeId || isComplete(c.id)
-        );
-        if (allDone && mod.challenges.some(c => c.id === challengeId)) {
-          setShowCelebration(mod.guruTitle);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          break;
-        }
-      }
-    }, 500);
-  }, [awardXP, isComplete]);
+  const openModule = useCallback((item) => setModuleModal(item), []);
+  const openChallenge = useCallback((c) => {
+    setModuleModal(null);
+    setTimeout(() => setChallengeModal(c), 350);
+  }, []);
+  const onChallengeDone = useCallback((pts, cid, nw) => {
+    award(pts, cid, nw);
+    setChallengeModal(null);
+    try {
+      if (prefs.haptics) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {}
+  }, [award, prefs.haptics]);
+  const closeChallenge = useCallback(() => setChallengeModal(null), []);
 
-  const handleChallengeExit = useCallback(() => setActiveChallenge(null), []);
+  // Calculate mastery per content item
+  const getMastery = useCallback((item) => {
+    const total = item.challenges.length;
+    if (total === 0) return 0;
+    const completed = item.challenges.filter(c => isDone(c.id)).length;
+    return completed / total;
+  }, [isDone]);
 
-  const renderFeedItem = useCallback(({ item, index }) => (
-    <VideoFeedItem
+  const anyModal = !!moduleModal || !!challengeModal || showMap || showSettings || (!seen && onboardReady);
+  const isActive = appState === 'active';
+
+  const renderCard = useCallback(({ item, index }) => (
+    <MemoCard
       item={item}
-      isActive={index === activeIndex && !activeModule && !activeChallenge}
-      onEnter={handleOpenModule}
-      moduleProgress={getModuleProgress(item)}
+      active={index === idx && !anyModal && isActive}
+      onDojo={openModule}
+      mastery={getMastery(item)}
     />
-  ), [activeIndex, activeModule, activeChallenge, handleOpenModule, getModuleProgress]);
+  ), [idx, anyModal, isActive, openModule, getMastery]);
 
-  const levelProgress = nextLevelXP > 0 ? Math.min(1, currentLevelXP / nextLevelXP) : 0;
+  const lvProg = nextXP > 0 ? Math.min(1, lvXP / nextXP) : 0;
+  const totalChallenges = CONTENT.reduce((s, c) => s + c.challenges.length, 0);
+  const completedChallenges = CONTENT.reduce((s, c) => s + c.challenges.filter(ch => isDone(ch.id)).length, 0);
 
-  // Count total guru badges earned
-  const guruCount = CONTENT_DATA.filter(m => getModuleProgress(m).isGuru).length;
+  const appReady = ready && prefsReady && onboardReady;
+
+  const totalNeuralWeight = useMemo(
+    () => Object.values(done).reduce((s, d) => s + (d.nw || 0), 0),
+    [done]
+  );
+
+  if (!appReady) {
+    return (
+      <View style={sty.loadingRoot}>
+        <ActivityIndicator size="large" color={T.primary} />
+        <Text style={sty.loadingText}>Initializing neural circuits...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
+    <View style={sty.root}>
       <StatusBar style="light" />
 
-      {/* VIDEO FEED */}
+      {/* FEED */}
       <FlatList
-        data={CONTENT_DATA}
-        keyExtractor={item => item.id}
+        data={CONTENT}
+        keyExtractor={i => i.id}
+        renderItem={renderCard}
         pagingEnabled
         snapToInterval={height}
         snapToAlignment="start"
         decelerationRate="fast"
         showsVerticalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        getItemLayout={getItemLayout}
-        renderItem={renderFeedItem}
+        viewabilityConfig={viewConfig}
+        onViewableItemsChanged={onViewChange}
+        getItemLayout={layout}
         windowSize={3}
         maxToRenderPerBatch={2}
-        removeClippedSubviews
         initialNumToRender={1}
+        removeClippedSubviews={Platform.OS === 'android'}
       />
 
-      {/* HUD OVERLAY */}
-      <SafeAreaView style={styles.hud} pointerEvents="box-none">
-        <View style={styles.hudLeft}>
-          <Text style={styles.logo}>KESANDU</Text>
-          <Text style={styles.logoSubtitle}>GURU</Text>
+      {/* HUD */}
+      <SafeAreaView style={sty.hud} pointerEvents="box-none">
+        <View>
+          <Text style={sty.logo}>KESANDU</Text>
+          <Text style={sty.logoSub}>GURU</Text>
         </View>
-        <View style={styles.hudRight}>
-          {/* Guru rank badge */}
-          <View style={[styles.rankBadge, { borderColor: guruRank.color }]}>
-            <Text style={[styles.rankText, { color: guruRank.color }]}>
-              {guruRank.title}
-            </Text>
+        <View style={sty.hudRight}>
+          <TouchableOpacity style={sty.mapBtn} onPress={() => setShowSettings(true)} accessibilityLabel="Open settings">
+            <Settings size={16} color={T.synapse} />
+          </TouchableOpacity>
+          {/* Synaptic Map toggle */}
+          <TouchableOpacity style={sty.mapBtn} onPress={() => setShowMap(true)} accessibilityLabel="Open synaptic map">
+            <Brain size={16} color={T.synapse} />
+          </TouchableOpacity>
+          {/* Level + XP */}
+          <View style={sty.lvBadge}>
+            <Text style={sty.lvNum}>{lv}</Text>
           </View>
-          {/* Level badge */}
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelNumber}>{level}</Text>
-          </View>
-          {/* XP progress */}
-          <View style={styles.xpSection}>
-            <View style={styles.xpBarTrack}>
-              <View style={[styles.xpBarFill, { width: `${levelProgress * 100}%` }]} />
+          <View>
+            <View style={sty.xpTrack}>
+              <View style={[sty.xpFill, { width: `${lvProg * 100}%` }]} />
             </View>
-            <View style={styles.xpPill}>
-              <Zap size={12} color={THEME.guru} fill={THEME.guru} />
-              <Text style={styles.xpText}>{totalXP}</Text>
+            <View style={sty.xpRow}>
+              <Zap size={10} color={T.guru} fill={T.guru} />
+              <Text style={sty.xpNum}>{xp}</Text>
             </View>
           </View>
         </View>
       </SafeAreaView>
 
-      {/* Guru count indicator */}
-      {guruCount > 0 && (
-        <View style={styles.guruCountBadge}>
-          <Award size={14} color={THEME.guru} />
-          <Text style={styles.guruCountText}>{guruCount}/{CONTENT_DATA.length}</Text>
-        </View>
-      )}
-
-      {/* MODULE DETAIL MODAL */}
-      <Modal visible={!!activeModule} animationType="slide" presentationStyle="pageSheet">
-        <View style={styles.modalContainer}>
-          <View style={styles.chatHeader}>
-            <Text style={styles.headerTitle}>TRAINING MODULE</Text>
-            <TouchableOpacity onPress={handleCloseModule}>
-              <X size={24} color="#FFF" />
+      {/* MODULE MODAL */}
+      <Modal visible={!!moduleModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setModuleModal(null)}>
+        <View style={sty.modalRoot}>
+          <View style={sty.modalHead}>
+            <Text style={sty.modalTitle}>⚡ TRAINING MODULE</Text>
+            <TouchableOpacity onPress={() => setModuleModal(null)} style={sty.modalClose} accessibilityLabel="Close module">
+              <X size={20} color="#FFF" />
             </TouchableOpacity>
           </View>
-          <ScrollView style={{ padding: 20 }}>
-            {/* Module guru progress */}
-            {activeModule && (
-              <View style={styles.moduleGuruHeader}>
-                <Award
-                  size={20}
-                  color={getModuleProgress(activeModule).isGuru ? THEME.guru : THEME.muted}
-                />
-                <Text style={[
-                  styles.moduleGuruTitle,
-                  getModuleProgress(activeModule).isGuru && { color: THEME.guru },
-                ]}>
-                  {activeModule.guruTitle}
-                </Text>
-                <Text style={styles.moduleGuruStatus}>
-                  {getModuleProgress(activeModule).isGuru
-                    ? 'MASTERED'
-                    : `${getModuleProgress(activeModule).done}/${getModuleProgress(activeModule).total} complete`}
-                </Text>
-              </View>
-            )}
-
-            {/* Scenario card */}
-            <View style={styles.scenarioCard}>
-              <View style={styles.scenarioHeader}>
-                <Briefcase size={16} color={THEME.warning} />
-                <Text style={styles.scenarioRole}>{activeModule?.applicationScenario.role}</Text>
-              </View>
-              <Text style={styles.scenarioContext}>{activeModule?.applicationScenario.context}</Text>
-            </View>
-
-            <Text style={styles.sectionTitle}>CHALLENGES</Text>
-            {activeModule?.challenges.map((c, i) => {
-              const completed = isComplete(c.id);
-              return (
-                <TouchableOpacity
-                  key={c.id}
-                  style={[styles.challengeRow, completed && styles.challengeRowComplete]}
-                  onPress={() => handleOpenChallenge(c)}
-                >
-                  <View style={[styles.indexCircle, completed && styles.indexCircleComplete]}>
-                    {completed ? (
-                      <CheckCircle size={16} color={THEME.success} />
-                    ) : (
-                      <Text style={styles.indexNumber}>{i + 1}</Text>
-                    )}
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+            {moduleModal && (
+              <>
+                <View style={sty.scenCard}>
+                  <View style={sty.scenHead}>
+                    <Briefcase size={14} color={T.warning} />
+                    <Text style={sty.scenRole}>{moduleModal.scenario.role}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.challengeTitle}>{c.title}</Text>
-                    <Text style={styles.challengeType}>
-                      {c.type === 'TEACH_BACK' ? '\uD83C\uDF93 Teach Back' : '\uD83E\uDDEA Concept Check'}
-                      {' \u2022 '}+{c.xp_reward} XP
-                    </Text>
-                  </View>
-                  <ChevronRight size={20} color={completed ? THEME.success : THEME.primary} />
-                </TouchableOpacity>
-              );
-            })}
-
-            {/* Next rank teaser */}
-            {nextRank && (
-              <View style={styles.nextRankCard}>
-                <TrendingUp size={16} color={nextRank.color} />
-                <Text style={styles.nextRankText}>
-                  Next rank: <Text style={{ color: nextRank.color, fontWeight: 'bold' }}>{nextRank.title}</Text> at {nextRank.minXP} XP
-                </Text>
-              </View>
+                  <Text style={sty.scenCtx}>{moduleModal.scenario.context}</Text>
+                </View>
+                <Text style={sty.secTitle}>NEURAL CHALLENGES</Text>
+                {moduleModal.challenges.map((c, i) => {
+                  const completed = isDone(c.id);
+                  const syn = getSynapse(c.id);
+                  return (
+                    <TouchableOpacity key={c.id} style={[sty.chRow, completed && sty.chRowDone]} onPress={() => openChallenge(c)} activeOpacity={0.7}>
+                      <View style={[sty.chCircle, completed && sty.chCircleDone]}>
+                        {completed ? <CheckCircle size={14} color={T.success} /> : <Text style={sty.chNum}>{i + 1}</Text>}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={sty.chTitle}>{c.title}</Text>
+                        <Text style={sty.chMeta}>
+                          {c.type === 'TEACH_BACK' ? '🧬 Neural Teach' : '⚡ Concept Scan'} · +{c.xp_reward} XP
+                        </Text>
+                        {syn && <Text style={sty.chNW}>Neural Weight: {syn.nw}</Text>}
+                      </View>
+                      <ChevronRight size={16} color={completed ? T.success : T.primary} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </>
             )}
           </ScrollView>
         </View>
       </Modal>
 
-      {/* CHAT ARENA MODAL */}
-      <Modal visible={!!activeChallenge} animationType="slide">
-        {activeChallenge && (
+      {/* CHALLENGE MODAL */}
+      <Modal visible={!!challengeModal} animationType="slide" onRequestClose={closeChallenge}>
+        {challengeModal && (
           <ChatEngine
-            challenge={activeChallenge}
-            onExit={handleChallengeExit}
-            onComplete={handleChallengeComplete}
-            isAlreadyComplete={isComplete(activeChallenge?.id)}
+            challenge={challengeModal}
+            onExit={closeChallenge}
+            onDone={onChallengeDone}
+            alreadyDone={isDone(challengeModal.id)}
+            hapticsEnabled={prefs.haptics}
+            reduceMotion={prefs.reduceMotion}
           />
         )}
       </Modal>
 
-      {/* GURU CELEBRATION OVERLAY */}
-      <GuruCelebration
-        visible={!!showCelebration}
-        guruTitle={showCelebration || ''}
-        onDismiss={() => setShowCelebration(null)}
-      />
+      {/* SYNAPTIC MAP MODAL */}
+      <Modal visible={showMap} animationType="fade" transparent onRequestClose={() => setShowMap(false)}>
+        <View style={sty.mapOverlay}>
+          <View style={sty.mapModal}>
+            <View style={sty.mapModalHead}>
+              <Text style={sty.mapModalTitle}>🧠 SYNAPTIC MAP</Text>
+              <TouchableOpacity onPress={() => setShowMap(false)} accessibilityLabel="Close synaptic map">
+                <X size={20} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+            <SynapticMap completions={done} />
+            <View style={sty.mapStats}>
+              <Text style={sty.mapStatText}>{completedChallenges}/{totalChallenges} synapses formed</Text>
+              <Text style={sty.mapStatText}>Total Neural Weight: {totalNeuralWeight}</Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SETTINGS MODAL */}
+      <Modal visible={showSettings} animationType="fade" transparent onRequestClose={() => setShowSettings(false)}>
+        <View style={sty.mapOverlay}>
+          <View style={sty.mapModal}>
+            <View style={sty.mapModalHead}>
+              <Text style={sty.mapModalTitle}>⚙️ SETTINGS</Text>
+              <TouchableOpacity onPress={() => setShowSettings(false)} accessibilityLabel="Close settings">
+                <X size={20} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={sty.settingsRow}>
+              <View>
+                <Text style={sty.settingsLabel}>Haptic Feedback</Text>
+                <Text style={sty.settingsHint}>Turn off vibrations for a calmer session.</Text>
+              </View>
+              <Switch
+                value={prefs.haptics}
+                onValueChange={(value) => update({ haptics: value })}
+                trackColor={{ false: T.border, true: T.primaryDim }}
+                thumbColor={prefs.haptics ? T.primary : '#444'}
+              />
+            </View>
+            <View style={sty.settingsRow}>
+              <View>
+                <Text style={sty.settingsLabel}>Reduce Motion</Text>
+                <Text style={sty.settingsHint}>Minimize animated effects.</Text>
+              </View>
+              <Switch
+                value={prefs.reduceMotion}
+                onValueChange={(value) => update({ reduceMotion: value })}
+                trackColor={{ false: T.border, true: T.primaryDim }}
+                thumbColor={prefs.reduceMotion ? T.primary : '#444'}
+              />
+            </View>
+            <View style={sty.settingsRow}>
+              <View>
+                <Text style={sty.settingsLabel}>Reset Progress</Text>
+                <Text style={sty.settingsHint}>Clear XP and synaptic map history.</Text>
+              </View>
+              <TouchableOpacity style={sty.resetBtn} onPress={reset}>
+                <Text style={sty.resetLabel}>RESET</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ONBOARDING MODAL */}
+      <Modal visible={!seen} animationType="fade" transparent>
+        <View style={sty.mapOverlay}>
+          <View style={sty.mapModal}>
+            <Text style={sty.mapModalTitle}>🧠 WELCOME TO KESANDU</Text>
+            <Text style={sty.onboardText}>
+              Train with short videos and neural challenges. Earn XP, unlock synapses, and master concepts faster.
+            </Text>
+            <View style={sty.onboardList}>
+              <Text style={sty.onboardItem}>• Watch a clip, then enter the dojo.</Text>
+              <Text style={sty.onboardItem}>• Teach back concepts without jargon.</Text>
+              <Text style={sty.onboardItem}>• Track neural weight and clarity.</Text>
+            </View>
+            <TouchableOpacity style={sty.dojoBtn} onPress={dismiss}>
+              <Text style={sty.dojoBtnText}>BEGIN TRAINING</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 // ============================================================================
-// 8. STYLES
+// 10. STYLES
 // ============================================================================
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+const sty = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#000' },
+  loadingRoot: { flex: 1, backgroundColor: T.bg, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { color: T.soft, fontSize: 13 },
 
-  // -- Video Feed --
-  videoContainer: {
-    width,
-    height,
-    position: 'absolute',
-    justifyContent: 'center',
-  },
-  offscreenPlaceholder: {
-    width,
-    height,
-    backgroundColor: '#0A0A0A',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  manualPlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  tapToPlayText: {
-    color: '#FFF',
-    marginTop: 10,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-    padding: 20,
-    paddingBottom: 50,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  },
-  overlayContent: { gap: 6 },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  categoryText: {
-    color: '#DDD',
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  title: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
-  creator: { color: '#CCC', fontSize: 15 },
-  challengeCount: { color: '#999', fontSize: 13 },
-  moduleProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginVertical: 4,
-  },
-  moduleProgressTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  moduleProgressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  moduleProgressText: {
-    color: THEME.primary,
-    fontSize: 12,
-    fontWeight: '700',
-    minWidth: 35,
-  },
-  dojoBtn: {
-    flexDirection: 'row',
-    backgroundColor: THEME.primary,
-    padding: 16,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  dojoBtnGuru: {
-    backgroundColor: THEME.guru,
-  },
-  dojoBtnText: { fontWeight: 'bold', fontSize: 16, color: '#000' },
+  // Feed
+  placeholder: { backgroundColor: '#050510', justifyContent: 'center', alignItems: 'center' },
+  phText: { color: 'rgba(123,97,255,0.2)', fontSize: 13, marginTop: 8 },
+  tapLayer: { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 5 },
+  playRing: { width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(123,97,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(123,97,255,0.5)' },
+  tapLabel: { color: T.soft, marginTop: 14, fontWeight: '700', fontSize: 12, letterSpacing: 2 },
+  infoWrap: { paddingHorizontal: 20, paddingBottom: 50, paddingTop: 90, backgroundColor: 'rgba(0,0,10,0.6)' },
+  catPill: { alignSelf: 'flex-start', backgroundColor: T.synapseDim, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 3, marginBottom: 8 },
+  catText: { color: T.synapse, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
+  vidTitle: { color: '#FFF', fontSize: 22, fontWeight: 'bold' },
+  vidCreator: { color: T.soft, fontSize: 13, marginTop: 3 },
+  vidMeta: { color: T.muted, fontSize: 11, marginTop: 2 },
+  dojoBtn: { flexDirection: 'row', backgroundColor: T.primary, paddingVertical: 14, paddingHorizontal: 22, borderRadius: 26, alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14, elevation: 6, shadowColor: T.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12 },
+  dojoBtnText: { fontWeight: '800', fontSize: 14, color: '#000', letterSpacing: 0.8 },
 
-  // -- HUD --
-  hud: {
-    position: 'absolute',
-    top: 0,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 16,
-    paddingTop: IS_IOS ? 8 : 12,
-  },
-  hudLeft: {},
-  hudRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  logo: {
-    color: '#FFF',
-    fontWeight: '900',
-    fontSize: 18,
-    letterSpacing: 3,
-  },
-  logoSubtitle: {
-    color: THEME.guru,
-    fontWeight: '800',
-    fontSize: 10,
-    letterSpacing: 4,
-    marginTop: -2,
-  },
-  rankBadge: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  rankText: {
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  levelBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: THEME.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  levelNumber: {
-    color: '#000',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  xpSection: {
-    alignItems: 'flex-end',
-  },
-  xpBarTrack: {
-    width: 60,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 3,
-  },
-  xpBarFill: {
-    height: '100%',
-    backgroundColor: THEME.guru,
-    borderRadius: 2,
-  },
-  xpPill: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-  },
-  xpText: {
-    color: THEME.guru,
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
+  // HUD
+  hud: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: IS_IOS ? 8 : 10 },
+  logo: { color: '#FFF', fontWeight: '900', fontSize: 16, letterSpacing: 4 },
+  logoSub: { color: T.synapse, fontSize: 9, fontWeight: '700', letterSpacing: 6, marginTop: -2 },
+  hudRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mapBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: T.synapseDim, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(123,97,255,0.3)' },
+  lvBadge: { width: 26, height: 26, borderRadius: 13, backgroundColor: T.synapse, justifyContent: 'center', alignItems: 'center' },
+  lvNum: { color: '#FFF', fontSize: 11, fontWeight: '800' },
+  xpTrack: { width: 52, height: 3, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 2, overflow: 'hidden', marginBottom: 2 },
+  xpFill: { height: '100%', backgroundColor: T.guru, borderRadius: 2 },
+  xpRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  xpNum: { color: T.guru, fontWeight: 'bold', fontSize: 11 },
 
-  // -- Guru count badge --
-  guruCountBadge: {
-    position: 'absolute',
-    bottom: 30,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-  },
-  guruCountText: {
-    color: THEME.guru,
-    fontWeight: '700',
-    fontSize: 13,
-  },
+  // Chat
+  chatSafe: { flex: 1, backgroundColor: T.bg },
+  chatHead: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderColor: T.border },
+  chatClose: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  chatType: { color: '#FFF', fontWeight: '700', fontSize: 12, letterSpacing: 1.5 },
+  promptBox: { backgroundColor: T.surface, padding: 12, flexDirection: 'row', gap: 8, borderBottomWidth: 1, borderColor: T.border },
+  promptText: { color: T.soft, flex: 1, fontSize: 13, lineHeight: 18 },
+  doneBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.successDim, paddingVertical: 6, paddingHorizontal: 14, borderBottomWidth: 1, borderColor: T.border },
+  doneLabel: { color: T.success, fontSize: 11 },
 
-  // -- Guru Badge --
-  guruBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 215, 0, 0.2)',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.4)',
-  },
-  guruBadgeText: {
-    color: THEME.guru,
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  progressBadge: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  progressBadgeText: {
-    color: '#999',
-    fontSize: 10,
-    fontWeight: '600',
-  },
+  // Messages
+  personaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  personaAvatar: { fontSize: 16 },
+  personaName: { color: T.muted, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+  bub: { maxWidth: '88%', padding: 13, borderRadius: 16, marginBottom: 2 },
+  bubAi: { alignSelf: 'flex-start', backgroundColor: '#0D0D2B', borderTopLeftRadius: 4, borderWidth: 1, borderColor: 'rgba(123,97,255,0.15)' },
+  bubUser: { alignSelf: 'flex-end', backgroundColor: 'rgba(0,229,255,0.08)', borderBottomRightRadius: 4, borderWidth: 1, borderColor: 'rgba(0,229,255,0.2)' },
+  bubText: { color: '#EEE', fontSize: 14, lineHeight: 20 },
+  systemMsg: { alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 16, backgroundColor: T.synapseDim, borderRadius: 12, marginVertical: 8 },
+  systemText: { color: T.synapse, fontSize: 11, fontWeight: '600' },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, paddingBottom: 4 },
+  typingLabel: { color: T.muted, fontSize: 11 },
 
-  // -- Celebration --
-  celebrationOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 100,
-  },
-  celebrationCard: {
-    backgroundColor: '#111',
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    width: width * 0.85,
-    borderWidth: 2,
-    borderColor: THEME.guru,
-  },
-  celebrationTitle: {
-    color: THEME.guru,
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: 2,
-    marginTop: 16,
-  },
-  celebrationSubtitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  celebrationDesc: {
-    color: '#AAA',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginTop: 12,
-  },
-  celebrationBtn: {
-    backgroundColor: THEME.guru,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 30,
-    marginTop: 24,
-  },
-  celebrationBtnText: {
-    color: '#000',
-    fontWeight: 'bold',
-    fontSize: 16,
-    letterSpacing: 1,
-  },
+  // Neural Pulse
+  pulseContainer: { paddingHorizontal: 16, paddingVertical: 6, borderTopWidth: 1, borderColor: T.border },
+  pulseTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 2, overflow: 'hidden', position: 'relative' },
+  pulseFill: { height: '100%', borderRadius: 2 },
+  pulseGlow: { position: 'absolute', top: -2, left: 0, right: 0, height: 8, borderRadius: 4 },
+  pulseInfo: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  pulseLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' },
 
-  // -- Chat --
-  chatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: IS_IOS ? 8 : 16,
-    borderBottomWidth: 1,
-    borderColor: THEME.border,
-    alignItems: 'center',
-  },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  headerSubtitle: {
-    color: THEME.muted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  briefBox: {
-    backgroundColor: THEME.surface,
-    padding: 14,
-    flexDirection: 'row',
-    gap: 10,
-    borderBottomWidth: 1,
-    borderColor: THEME.border,
-  },
-  briefText: { color: '#DDD', flex: 1, fontSize: 14, lineHeight: 20 },
-  completeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0, 255, 157, 0.08)',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderColor: THEME.border,
-  },
-  completeBannerText: {
-    color: THEME.success,
-    fontSize: 12,
-  },
-  bubble: { maxWidth: '88%', padding: 14, borderRadius: 18, marginBottom: 4 },
-  bubbleAi: { alignSelf: 'flex-start', backgroundColor: '#1A1A2E', borderTopLeftRadius: 4 },
-  bubbleUser: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(0, 217, 255, 0.12)',
-    borderBottomRightRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 217, 255, 0.3)',
-  },
-  bubbleText: { color: '#FFF', fontSize: 14, lineHeight: 21 },
-  typingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  typingText: { color: THEME.muted, fontSize: 12 },
-  inputBar: {
-    flexDirection: 'row',
-    padding: 12,
-    borderTopWidth: 1,
-    borderColor: THEME.border,
-    gap: 10,
-    alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: THEME.surface,
-    color: '#FFF',
-    borderRadius: 20,
-    padding: 12,
-    paddingTop: 12,
-    minHeight: 48,
-    maxHeight: 120,
-    fontSize: 15,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  sendBtn: {
-    backgroundColor: THEME.primary,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendBtnDisabled: {
-    backgroundColor: THEME.surface,
-  },
-  actionBar: {
-    flexDirection: 'row',
-    padding: 12,
-    gap: 10,
-    borderTopWidth: 1,
-    borderColor: THEME.border,
-  },
-  retryBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: THEME.surface,
-    padding: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  retryBtnText: { color: THEME.textSoft, fontWeight: '600', fontSize: 15 },
-  collectBtn: {
-    flex: 1.5,
-    padding: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  collectBtnText: {
-    fontWeight: 'bold',
-    fontSize: 15,
-    color: '#000',
-  },
+  // Input
+  inputBar: { flexDirection: 'row', padding: 10, borderTopWidth: 1, borderColor: T.border, gap: 8, alignItems: 'flex-end' },
+  inputField: { flex: 1, backgroundColor: T.surface, color: '#FFF', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, minHeight: 44, maxHeight: 110, fontSize: 14, borderWidth: 1, borderColor: T.border },
+  sendBtn: { backgroundColor: T.primary, width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
+  actionBar: { flexDirection: 'row', padding: 10, gap: 8, borderTopWidth: 1, borderColor: T.border },
+  retryBtn: { flex: 1, flexDirection: 'row', backgroundColor: T.surface, paddingVertical: 13, borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: T.border },
+  retryLabel: { color: T.soft, fontWeight: '600', fontSize: 13 },
+  collectBtn: { flex: 1.5, paddingVertical: 13, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  collectLabel: { fontWeight: '800', fontSize: 13, color: '#000', letterSpacing: 0.3 },
 
-  // -- Score & Breakdown --
-  scoreBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
-    maxWidth: '88%',
-  },
-  scoreBarTrack: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#222',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  scoreBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  scoreLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    minWidth: 45,
-    textAlign: 'right',
-  },
-  breakdownContainer: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 12,
-    padding: 12,
-    maxWidth: '88%',
-    gap: 6,
-    marginTop: 4,
-  },
-  breakdownTitle: {
-    color: THEME.muted,
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  breakdownRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  breakdownText: {
-    color: '#AAA',
-    fontSize: 12,
-    flex: 1,
-  },
-  weightBadge: {
-    backgroundColor: THEME.primary,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  weightText: {
-    color: '#000',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  xpEarnedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    alignSelf: 'flex-start',
-    marginTop: 6,
-  },
-  xpEarnedText: {
-    color: THEME.guru,
-    fontWeight: '700',
-    fontSize: 14,
-  },
+  // Neural Weight
+  nwContainer: { backgroundColor: 'rgba(0,229,255,0.04)', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: 'rgba(0,229,255,0.15)', marginBottom: 10, maxWidth: '88%' },
+  nwHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  nwTitle: { color: T.muted, fontSize: 9, fontWeight: '700', letterSpacing: 1.5 },
+  nwScore: { fontSize: 36, fontWeight: '900', letterSpacing: -1 },
+  nwRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  nwStat: { flex: 1, alignItems: 'center' },
+  nwStatLabel: { color: T.muted, fontSize: 8, fontWeight: '600', letterSpacing: 0.8 },
+  nwStatVal: { color: T.soft, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  nwDivider: { width: 1, height: 24, backgroundColor: T.border },
+  nwTime: { color: T.muted, fontSize: 9, marginTop: 8, textAlign: 'center' },
 
-  // -- Module Modal --
-  modalContainer: { flex: 1, backgroundColor: '#000' },
-  moduleGuruHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderColor: THEME.border,
-  },
-  moduleGuruTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-    flex: 1,
-  },
-  moduleGuruStatus: {
-    color: THEME.muted,
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  scenarioCard: {
-    backgroundColor: 'rgba(255, 214, 0, 0.06)',
-    padding: 18,
-    borderRadius: 14,
-    borderColor: 'rgba(255, 214, 0, 0.3)',
-    borderWidth: 1,
-    marginBottom: 28,
-  },
-  scenarioHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  scenarioRole: {
-    color: THEME.warning,
-    fontWeight: 'bold',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  scenarioContext: { color: '#EEE', fontSize: 15, lineHeight: 22 },
-  sectionTitle: {
-    color: THEME.primary,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    fontSize: 12,
-    letterSpacing: 1,
-  },
-  challengeRow: {
-    flexDirection: 'row',
-    backgroundColor: THEME.surface,
-    padding: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  challengeRowComplete: {
-    borderColor: 'rgba(0, 255, 157, 0.2)',
-    backgroundColor: 'rgba(0, 255, 157, 0.04)',
-  },
-  indexCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  indexCircleComplete: {
-    backgroundColor: 'rgba(0, 255, 157, 0.15)',
-  },
-  indexNumber: { fontWeight: 'bold', fontSize: 14 },
-  challengeTitle: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
-  challengeType: { color: '#888', fontSize: 12, marginTop: 2 },
-  nextRankCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    padding: 16,
-    borderRadius: 14,
-    marginTop: 20,
-    marginBottom: 40,
-    borderWidth: 1,
-    borderColor: THEME.border,
-  },
-  nextRankText: {
-    color: '#AAA',
-    fontSize: 13,
-    flex: 1,
-  },
+  // Score bar
+  sBarRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6, maxWidth: '88%' },
+  sBarTrack: { flex: 1, height: 4, backgroundColor: '#111', borderRadius: 2, overflow: 'hidden' },
+  sBarFill: { height: '100%', borderRadius: 2 },
+  sBarNum: { fontSize: 12, fontWeight: '700', minWidth: 30, textAlign: 'right' },
+
+  // Breakdown
+  bd: { backgroundColor: 'rgba(123,97,255,0.04)', borderRadius: 10, padding: 10, maxWidth: '88%', gap: 5, marginTop: 4, borderWidth: 1, borderColor: 'rgba(123,97,255,0.1)' },
+  bdHead: { color: T.muted, fontSize: 9, fontWeight: '700', letterSpacing: 1, marginBottom: 2 },
+  bdRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  bdDot: { width: 6, height: 6, borderRadius: 3 },
+  bdText: { color: T.soft, fontSize: 11, flex: 1 },
+  bdW: { fontSize: 10, fontWeight: '700' },
+
+  // XP Badge
+  xpBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,215,0,0.06)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, alignSelf: 'flex-start', marginTop: 6, borderWidth: 1, borderColor: 'rgba(255,215,0,0.15)' },
+  xpBadgeText: { color: T.guru, fontWeight: '700', fontSize: 12 },
+
+  // Module modal
+  modalRoot: { flex: 1, backgroundColor: T.bg },
+  modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderColor: T.border },
+  modalTitle: { color: '#FFF', fontWeight: '700', fontSize: 13, letterSpacing: 1 },
+  modalClose: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  scenCard: { backgroundColor: T.warningDim, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,214,0,0.2)', marginBottom: 24 },
+  scenHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  scenRole: { color: T.warning, fontWeight: '700', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8 },
+  scenCtx: { color: '#DDD', fontSize: 14, lineHeight: 20 },
+  secTitle: { color: T.synapse, fontWeight: '700', fontSize: 10, letterSpacing: 1.5, marginBottom: 10 },
+  chRow: { flexDirection: 'row', backgroundColor: T.surface, padding: 14, borderRadius: 12, alignItems: 'center', gap: 12, marginBottom: 8, borderWidth: 1, borderColor: T.border },
+  chRowDone: { borderColor: 'rgba(0,255,157,0.15)', backgroundColor: 'rgba(0,255,157,0.02)' },
+  chCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' },
+  chCircleDone: { backgroundColor: 'rgba(0,255,157,0.1)' },
+  chNum: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  chTitle: { color: '#FFF', fontWeight: '600', fontSize: 14 },
+  chMeta: { color: T.muted, fontSize: 11, marginTop: 2 },
+  chNW: { color: T.synapse, fontSize: 10, marginTop: 2, fontWeight: '600' },
+
+  // Synaptic Map
+  mapContainer: { alignItems: 'center', paddingVertical: 10 },
+  mapHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  mapTitle: { color: T.synapse, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  mapOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' },
+  mapModal: { width: width - 30, backgroundColor: T.card, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: T.synapseDim },
+  mapModalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  mapModalTitle: { color: '#FFF', fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
+  mapStats: { alignItems: 'center', paddingTop: 10, gap: 4 },
+  mapStatText: { color: T.muted, fontSize: 11, fontWeight: '600' },
+
+  // Settings
+  settingsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderColor: T.border },
+  settingsLabel: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+  settingsHint: { color: T.muted, fontSize: 11, marginTop: 4 },
+  resetBtn: { backgroundColor: T.dangerDim, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(255,51,102,0.3)' },
+  resetLabel: { color: T.danger, fontWeight: '700', fontSize: 11, letterSpacing: 1 },
+
+  // Onboarding
+  onboardText: { color: T.soft, fontSize: 13, lineHeight: 18, marginTop: 8 },
+  onboardList: { marginTop: 12, gap: 6 },
+  onboardItem: { color: T.muted, fontSize: 12 },
 });
