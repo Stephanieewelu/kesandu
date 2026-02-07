@@ -1263,18 +1263,6 @@ function AppContent() {
   const guruRank = getGuruRank(totalXP);
   const nextRank = getNextRank(totalXP);
 
-  if (hasOnboarded === null || !loaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#00D9FF" />
-      </View>
-    );
-  }
-
-  if (!hasOnboarded) {
-    return <OnboardingScreen onComplete={completeOnboarding} />;
-  }
-
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 70,
     minimumViewTime: 300,
@@ -1334,9 +1322,19 @@ function AppContent() {
   ), [activeIndex, activeModule, activeChallenge, handleOpenModule, getModuleProgress]);
 
   const levelProgress = nextLevelXP > 0 ? Math.min(1, currentLevelXP / nextLevelXP) : 0;
-
-  // Count total guru badges earned
   const guruCount = CONTENT_DATA.filter(m => getModuleProgress(m).isGuru).length;
+
+  if (hasOnboarded === null || !loaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#00D9FF" />
+      </View>
+    );
+  }
+
+  if (!hasOnboarded) {
+    return <OnboardingScreen onComplete={completeOnboarding} />;
+  }
 
   return (
     <View style={styles.container}>
