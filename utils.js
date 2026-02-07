@@ -197,6 +197,79 @@ function computeDepthBonus(normalizedText) {
   return Math.min(10, hits * 2);
 }
 
+// -- Why-Depth Analysis (causal reasoning chains) --
+
+const WHY_CAUSE_MARKERS = [
+  'because', 'the reason is', 'the reason why', 'this is because',
+  'this happens because', 'due to', 'caused by', 'leads to',
+  'results in', 'as a result', 'consequently', 'thats why',
+  'which is why', 'so when', 'this works because',
+];
+
+const WHY_CONSEQUENCE_MARKERS = [
+  'this means', 'which means', 'so that', 'therefore',
+  'the consequence', 'the impact', 'the effect',
+  'without this', 'if you dont', 'otherwise',
+  'the problem is', 'the risk is', 'the danger is',
+  'what happens is', 'the result is',
+];
+
+function computeWhyDepthScore(normalizedText) {
+  let causeHits = 0;
+  let consequenceHits = 0;
+  for (const marker of WHY_CAUSE_MARKERS) {
+    if (normalizedText.includes(marker)) causeHits++;
+  }
+  for (const marker of WHY_CONSEQUENCE_MARKERS) {
+    if (normalizedText.includes(marker)) consequenceHits++;
+  }
+  const chainBonus = (causeHits > 0 && consequenceHits > 0) ? 5 : 0;
+  return Math.min(15, causeHits * 2 + consequenceHits * 2 + chainBonus);
+}
+
+// -- Analogy Detection (for teaching quality) --
+
+const ANALOGY_PATTERNS = [
+  'like a', 'just like', 'similar to', 'same as',
+  'think of it as', 'think of', 'imagine', 'pretend',
+  'its as if', 'picture a', 'compare it to', 'kind of like',
+  'works like', 'acts like', 'behaves like', 'sort of like',
+  'the same way', 'in the same way',
+];
+
+function detectAnalogyUse(normalizedText) {
+  const found = [];
+  for (const pattern of ANALOGY_PATTERNS) {
+    if (normalizedText.includes(pattern)) {
+      found.push(pattern);
+    }
+  }
+  return { count: found.length, patterns: found };
+}
+
+function computeAnalogyBonus(normalizedText) {
+  const { count } = detectAnalogyUse(normalizedText);
+  return Math.min(10, count * 4);
+}
+
+// -- Contrast Detection (comparing concepts) --
+
+const CONTRAST_MARKERS = [
+  'but', 'however', 'unlike', 'instead of', 'rather than',
+  'on the other hand', 'the difference', 'not the same',
+  'while', 'whereas', 'compared to', 'versus',
+  'doesnt mean', 'not actually', 'commonly confused',
+  'people think', 'many assume', 'misconception',
+];
+
+function computeContrastBonus(normalizedText) {
+  let hits = 0;
+  for (const marker of CONTRAST_MARKERS) {
+    if (normalizedText.includes(marker)) hits++;
+  }
+  return Math.min(8, hits * 2);
+}
+
 // -- Main Evaluation Function --
 
 const PASS_THRESHOLD = 70;
@@ -211,6 +284,7 @@ function evaluateAnswer(input, challenge) {
   const ngrams = buildNGrams(tokens);
   const feedback = [];
   const isTeachBack = challenge.type === 'TEACH_BACK';
+  const isApply = challenge.type === 'APPLY';
 
   // Step 1: Word Count Gate
   const minWords = challenge.min_word_count || 10;
@@ -254,8 +328,35 @@ function evaluateAnswer(input, challenge) {
     feedback.push('\u2705 All key concepts covered!');
   }
 
-  // Step 4: Depth Bonus
+  // Step 4: Depth Bonus (legacy + enhanced why-depth)
   const depthBonus = computeDepthBonus(normalizedInput);
+  const whyDepthBonus = computeWhyDepthScore(normalizedInput);
+
+  // Step 4b: Analogy Bonus (TEACH_BACK gets rewarded for analogies)
+  const analogyResult = detectAnalogyUse(normalizedInput);
+  const analogyBonus = isTeachBack ? computeAnalogyBonus(normalizedInput) : 0;
+
+  if (isTeachBack && analogyResult.count > 0) {
+    feedback.push(`\uD83C\uDF1F Great analogy use! (${analogyResult.count} found)`);
+  } else if (isTeachBack && analogyResult.count === 0) {
+    feedback.push('\uD83D\uDCA1 Tip: Use an analogy to make it click (e.g., "it\'s like...")');
+  }
+
+  // Step 4c: Contrast Bonus (APPLY and CONCEPT_CHECK reward comparative thinking)
+  const contrastBonus = (isApply || challenge.type === 'CONCEPT_CHECK')
+    ? computeContrastBonus(normalizedInput)
+    : 0;
+
+  if (contrastBonus > 0) {
+    feedback.push(`\uD83E\uDD14 Good critical thinking \u2014 you addressed misconceptions!`);
+  }
+
+  // Step 4d: Why-depth feedback for APPLY challenges
+  if (isApply && whyDepthBonus >= 10) {
+    feedback.push(`\uD83E\uDDE0 Excellent causal reasoning \u2014 you explained WHY, not just WHAT!`);
+  } else if (isApply && whyDepthBonus < 4) {
+    feedback.push(`\uD83D\uDCA1 Tip: Explain WHY this matters. Use "because...", "the risk is...", "this means...""`);
+  }
 
   // Step 5: Reading Level (TEACH_BACK only)
   let readingLevelResult = null;
@@ -271,9 +372,10 @@ function evaluateAnswer(input, challenge) {
     }
   }
 
-  // Step 6: Score Calculation
+  // Step 6: Score Calculation (enhanced with new bonuses)
   let baseScore = totalWeight > 0 ? (matchedWeight / totalWeight) * 100 : 0;
-  baseScore = Math.min(100, baseScore + depthBonus);
+  const totalBonus = depthBonus + Math.min(10, whyDepthBonus) + analogyBonus + contrastBonus;
+  baseScore = Math.min(100, baseScore + totalBonus);
 
   const forbiddenPenalty = forbiddenViolations.length * FORBIDDEN_PENALTY;
   const readingPenalty = readingLevelResult && !readingLevelResult.passed ? READING_LEVEL_PENALTY : 0;
@@ -319,6 +421,9 @@ function evaluateAnswer(input, challenge) {
       wordCount: { actual: tokens.length, required: minWords, passed: wordCountPassed },
       readingLevel: readingLevelResult,
       depthBonus,
+      whyDepthBonus,
+      analogyBonus,
+      contrastBonus,
     },
   };
 }
@@ -364,6 +469,17 @@ module.exports = {
   // Depth
   DEPTH_MARKERS,
   computeDepthBonus,
+  // Why-Depth
+  WHY_CAUSE_MARKERS,
+  WHY_CONSEQUENCE_MARKERS,
+  computeWhyDepthScore,
+  // Analogy
+  ANALOGY_PATTERNS,
+  detectAnalogyUse,
+  computeAnalogyBonus,
+  // Contrast
+  CONTRAST_MARKERS,
+  computeContrastBonus,
   // Evaluation
   PASS_THRESHOLD,
   PARTIAL_THRESHOLD,

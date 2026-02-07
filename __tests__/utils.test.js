@@ -13,6 +13,14 @@ const {
   detectForbiddenTerms,
   DEPTH_MARKERS,
   computeDepthBonus,
+  WHY_CAUSE_MARKERS,
+  WHY_CONSEQUENCE_MARKERS,
+  computeWhyDepthScore,
+  ANALOGY_PATTERNS,
+  detectAnalogyUse,
+  computeAnalogyBonus,
+  CONTRAST_MARKERS,
+  computeContrastBonus,
   PASS_THRESHOLD,
   PARTIAL_THRESHOLD,
   FORBIDDEN_PENALTY,
@@ -479,6 +487,111 @@ describe('Depth Bonus', () => {
 });
 
 // ============================================================================
+// WHY-DEPTH ANALYSIS
+// ============================================================================
+
+describe('Why-Depth Analysis', () => {
+  describe('computeWhyDepthScore', () => {
+    it('returns 0 for text with no causal markers', () => {
+      expect(computeWhyDepthScore('the cat sat on the mat')).toBe(0);
+    });
+
+    it('scores cause markers', () => {
+      const text = 'this happens because the model predicts words';
+      expect(computeWhyDepthScore(text)).toBeGreaterThan(0);
+    });
+
+    it('scores consequence markers', () => {
+      const text = 'this means the output could be wrong and the risk is high';
+      expect(computeWhyDepthScore(text)).toBeGreaterThan(0);
+    });
+
+    it('awards chain bonus when both cause and consequence present', () => {
+      const textWithBoth = 'this happens because the model guesses which means it can be wrong';
+      const textCauseOnly = 'this happens because the model guesses words from data';
+      const scoreBoth = computeWhyDepthScore(textWithBoth);
+      const scoreCause = computeWhyDepthScore(textCauseOnly);
+      expect(scoreBoth).toBeGreaterThan(scoreCause);
+    });
+
+    it('caps at 15', () => {
+      const text = 'because due to caused by leads to results in as a result consequently this means which means so that therefore the consequence the impact the effect';
+      expect(computeWhyDepthScore(text)).toBe(15);
+    });
+  });
+});
+
+// ============================================================================
+// ANALOGY DETECTION
+// ============================================================================
+
+describe('Analogy Detection', () => {
+  describe('detectAnalogyUse', () => {
+    it('returns count 0 for text with no analogies', () => {
+      const result = detectAnalogyUse('the model generates text');
+      expect(result.count).toBe(0);
+      expect(result.patterns).toEqual([]);
+    });
+
+    it('detects analogy patterns', () => {
+      const result = detectAnalogyUse('think of it like a guessing game just like auto-complete');
+      expect(result.count).toBeGreaterThan(0);
+      expect(result.patterns.length).toBeGreaterThan(0);
+    });
+
+    it('detects "imagine" pattern', () => {
+      const result = detectAnalogyUse('imagine a computer that reads lots of books');
+      expect(result.count).toBe(1);
+      expect(result.patterns).toContain('imagine');
+    });
+  });
+
+  describe('computeAnalogyBonus', () => {
+    it('returns 0 for text with no analogies', () => {
+      expect(computeAnalogyBonus('the model generates text')).toBe(0);
+    });
+
+    it('awards 4 points per analogy', () => {
+      const text = 'imagine a smart helper that works like a spell checker';
+      const bonus = computeAnalogyBonus(text);
+      expect(bonus).toBeGreaterThanOrEqual(4);
+    });
+
+    it('caps at 10', () => {
+      const text = 'like a helper just like imagine pretend think of similar to works like acts like';
+      expect(computeAnalogyBonus(text)).toBe(10);
+    });
+  });
+});
+
+// ============================================================================
+// CONTRAST DETECTION
+// ============================================================================
+
+describe('Contrast Detection', () => {
+  describe('computeContrastBonus', () => {
+    it('returns 0 for text with no contrast markers', () => {
+      expect(computeContrastBonus('the cat sat on the mat')).toBe(0);
+    });
+
+    it('detects contrast markers', () => {
+      const text = 'however this doesnt mean it understands unlike a human';
+      expect(computeContrastBonus(text)).toBeGreaterThan(0);
+    });
+
+    it('detects misconception markers', () => {
+      const text = 'people think AI understands but that is a misconception';
+      expect(computeContrastBonus(text)).toBeGreaterThan(0);
+    });
+
+    it('caps at 8', () => {
+      const text = 'but however unlike instead of rather than on the other hand the difference while whereas compared to versus doesnt mean not actually';
+      expect(computeContrastBonus(text)).toBe(8);
+    });
+  });
+});
+
+// ============================================================================
 // EVALUATE ANSWER (Integration)
 // ============================================================================
 
@@ -595,8 +708,71 @@ describe('evaluateAnswer', () => {
     });
   });
 
+  describe('analogy bonus for TEACH_BACK', () => {
+    it('awards analogy bonus when analogies are used in teach-back', () => {
+      const input = 'Imagine a computer that is like a guessing game. It reads lots of books and then it guesses what word comes next, just like how you fill in blanks in a story.';
+      const result = evaluateAnswer(input, teachBackChallenge);
+      expect(result.breakdown.analogyBonus).toBeGreaterThan(0);
+    });
+
+    it('does not award analogy bonus for CONCEPT_CHECK', () => {
+      const input = 'LLMs predict the next word in a sequence. Imagine a probability machine that is like a calculator for language and text patterns.';
+      const result = evaluateAnswer(input, conceptCheckChallenge);
+      expect(result.breakdown.analogyBonus).toBe(0);
+    });
+  });
+
+  describe('APPLY challenge type', () => {
+    const applyChallenge = {
+      type: 'APPLY',
+      prompt: 'Explain why blindly trusting AI in law is risky.',
+      required_concepts: [
+        [
+          { term: 'hallucinate', synonyms: ['make up', 'invents', 'wrong', 'incorrect'], weight: 3 },
+        ],
+        [
+          { term: 'verify', synonyms: ['check', 'review', 'oversight', 'human review'], weight: 3 },
+        ],
+        [
+          { term: 'risk', synonyms: ['danger', 'harm', 'liability', 'consequence'], weight: 2 },
+        ],
+      ],
+      forbidden_terms: [],
+      min_word_count: 25,
+      max_reading_level: null,
+      xp_reward: 200,
+      partial_xp_reward: 80,
+      hint: 'Think about hallucinations and human oversight.',
+    };
+
+    it('passes when all concepts and causal reasoning present', () => {
+      const input = 'LLMs can make up false legal citations that look real because they hallucinate plausible-sounding text. This means there is serious risk of harm to clients. You must have human review and verify every output, otherwise the consequence could be malpractice lawsuits.';
+      const result = evaluateAnswer(input, applyChallenge);
+      expect(result.status).toBe('PASS');
+      expect(result.score).toBeGreaterThanOrEqual(PASS_THRESHOLD);
+    });
+
+    it('awards contrast bonus for critical thinking', () => {
+      const input = 'People think AI understands law but it doesnt. LLMs make up facts that look wrong. However you must check and verify every claim because the risk of harm and liability is real and unlike a human the AI wont tell you when it is guessing.';
+      const result = evaluateAnswer(input, applyChallenge);
+      expect(result.breakdown.contrastBonus).toBeGreaterThan(0);
+    });
+
+    it('does not check forbidden terms for APPLY challenges', () => {
+      const input = 'The AI can hallucinate and make up wrong information. Always verify and check outputs because the risk of harm is too high to ignore in legal contexts and professional settings.';
+      const result = evaluateAnswer(input, applyChallenge);
+      expect(result.breakdown.forbidden).toEqual([]);
+    });
+
+    it('includes why-depth bonus in breakdown', () => {
+      const input = 'LLMs make up wrong citations because they are statistical pattern matchers not databases. This means there is a risk of harm. You must verify and check every output as a result of this fundamental limitation.';
+      const result = evaluateAnswer(input, applyChallenge);
+      expect(result.breakdown.whyDepthBonus).toBeGreaterThan(0);
+    });
+  });
+
   describe('result structure', () => {
-    it('returns all expected fields', () => {
+    it('returns all expected fields including new bonuses', () => {
       const input = 'LLMs predict the next word using probability patterns from training data and statistical models they have learned.';
       const result = evaluateAnswer(input, conceptCheckChallenge);
       expect(result).toHaveProperty('passed');
@@ -610,6 +786,9 @@ describe('evaluateAnswer', () => {
       expect(result.breakdown).toHaveProperty('wordCount');
       expect(result.breakdown).toHaveProperty('readingLevel');
       expect(result.breakdown).toHaveProperty('depthBonus');
+      expect(result.breakdown).toHaveProperty('whyDepthBonus');
+      expect(result.breakdown).toHaveProperty('analogyBonus');
+      expect(result.breakdown).toHaveProperty('contrastBonus');
     });
   });
 });

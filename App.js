@@ -20,6 +20,8 @@ import {
   countSyllables, computeReadingLevel,
   conceptPresent, matchConceptGroups,
   detectForbiddenTerms, DEPTH_MARKERS, computeDepthBonus,
+  computeWhyDepthScore, detectAnalogyUse, computeAnalogyBonus,
+  computeContrastBonus,
   PASS_THRESHOLD, PARTIAL_THRESHOLD, FORBIDDEN_PENALTY,
   READING_LEVEL_PENALTY, MIN_WORDS_SCORE_CAP, evaluateAnswer,
   xpForLevel, computeLevel,
@@ -60,7 +62,7 @@ const CONTENT_DATA = [
     title: 'How LLMs Work',
     creator: '@karpathy',
     category: 'AI Foundations',
-    xp: 300,
+    xp: 500,
     guruTitle: 'LLM Guru',
     applicationScenario: {
       role: 'AI Consultant',
@@ -122,6 +124,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 60,
         hint: "Use an analogy (e.g., 'auto-complete' or 'guessing game'). Don't use big words.",
       },
+      {
+        id: 'c1_3',
+        type: 'APPLY',
+        title: 'Real-World: Law Firm Risk',
+        prompt: 'A law firm wants to replace paralegals with an LLM. They trust it blindly. As their AI consultant, explain specifically WHY this is risky and WHAT could go wrong.',
+        initialAiMessage: "We just got GPT-4 access! We're firing our paralegals next week. The AI can do legal research perfectly, right? What could go wrong?",
+        required_concepts: [
+          [
+            { term: 'hallucinate', synonyms: ['hallucination', 'make up', 'makes up', 'invents', 'fabricates', 'wrong', 'incorrect', 'false', 'inaccurate'], weight: 3 },
+          ],
+          [
+            { term: 'verify', synonyms: ['check', 'review', 'validate', 'double check', 'fact check', 'human review', 'oversight'], weight: 3 },
+          ],
+          [
+            { term: 'liability', synonyms: ['risk', 'danger', 'harm', 'lawsuit', 'malpractice', 'consequence', 'responsible', 'legal risk'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 200,
+        partial_xp_reward: 80,
+        hint: 'Think about hallucinations, legal liability, and why human oversight is critical.',
+      },
     ],
   },
   {
@@ -130,7 +156,7 @@ const CONTENT_DATA = [
     title: 'Neural Networks',
     creator: '@3blue1brown',
     category: 'AI Foundations',
-    xp: 300,
+    xp: 500,
     guruTitle: 'Neural Net Guru',
     applicationScenario: {
       role: 'ML Engineer',
@@ -187,6 +213,28 @@ const CONTENT_DATA = [
         partial_xp_reward: 60,
         hint: 'Compare it to learning a skill through repetition and feedback.',
       },
+      {
+        id: 'c2_3',
+        type: 'APPLY',
+        title: 'Real-World: Failing Model',
+        prompt: 'Your CEO says "just add more layers" to fix a failing image classifier. Explain WHY that probably won\'t work and WHAT they should actually do instead.',
+        initialAiMessage: "Our cat/dog classifier is only 60% accurate. I told the ML team to just add 50 more layers. More layers = smarter AI, right? Why are they pushing back?",
+        required_concepts: [
+          [
+            { term: 'overfit', synonyms: ['overfitting', 'memorize', 'memorizes', 'too complex', 'complexity'], weight: 3 },
+            { term: 'data', synonyms: ['training data', 'dataset', 'more data', 'data quality', 'bad data', 'not enough data'], weight: 3 },
+          ],
+          [
+            { term: 'instead', synonyms: ['should', 'better approach', 'what works', 'try', 'actually', 'the real issue', 'the problem is'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 200,
+        partial_xp_reward: 80,
+        hint: 'Think about overfitting, data quality, and why more layers can actually hurt performance.',
+      },
     ],
   },
   {
@@ -195,7 +243,7 @@ const CONTENT_DATA = [
     title: 'Transformer Architecture',
     creator: '@3blue1brown',
     category: 'AI Deep Dive',
-    xp: 350,
+    xp: 575,
     guruTitle: 'Transformer Guru',
     applicationScenario: {
       role: 'AI Architect',
@@ -251,6 +299,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 70,
         hint: 'Compare it to highlighting the most important words in a sentence.',
       },
+      {
+        id: 'c3_3',
+        type: 'APPLY',
+        title: 'Real-World: RNN vs Transformer',
+        prompt: 'Your team asks: should we use RNNs or Transformers for our chatbot? Explain WHY transformers win for this use case and WHAT makes the difference.',
+        initialAiMessage: "We have an old RNN-based chatbot. It works okay for short messages but falls apart on long conversations. Someone said transformers would fix this. Why? Aren't they just a newer version of the same thing?",
+        required_concepts: [
+          [
+            { term: 'parallel', synonyms: ['simultaneously', 'all at once', 'at the same time', 'not sequential', 'faster'], weight: 3 },
+          ],
+          [
+            { term: 'long', synonyms: ['long-range', 'distant', 'far apart', 'long conversations', 'context window', 'remembers', 'forgets'], weight: 3 },
+          ],
+          [
+            { term: 'sequential', synonyms: ['one by one', 'one at a time', 'step by step', 'slow', 'order', 'rnn limitation'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 225,
+        partial_xp_reward: 90,
+        hint: 'Think about parallelism, long-range dependencies, and why RNNs struggle with long sequences.',
+      },
     ],
   },
   {
@@ -259,7 +331,7 @@ const CONTENT_DATA = [
     title: 'Prompt Engineering',
     creator: '@fireship',
     category: 'AI Skills',
-    xp: 250,
+    xp: 425,
     guruTitle: 'Prompt Guru',
     applicationScenario: {
       role: 'AI Product Manager',
@@ -315,6 +387,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 50,
         hint: 'Compare it to asking a really smart person a vague question vs a specific one.',
       },
+      {
+        id: 'c4_3',
+        type: 'APPLY',
+        title: 'Real-World: Fix the Chatbot',
+        prompt: 'Your company chatbot gives inconsistent answers. Users are frustrated. As AI Product Manager, explain WHY the prompts are failing and WHAT specific prompting strategy you would implement.',
+        initialAiMessage: "Our customer support chatbot sometimes says we offer free returns, sometimes says we don't. Same question, different answers every time. The CEO is furious. How do we fix this?",
+        required_concepts: [
+          [
+            { term: 'system prompt', synonyms: ['system message', 'instructions', 'rules', 'constraints', 'guidelines', 'role'], weight: 3 },
+          ],
+          [
+            { term: 'consistent', synonyms: ['consistency', 'reliable', 'same answer', 'predictable', 'stable', 'repeatable'], weight: 3 },
+          ],
+          [
+            { term: 'example', synonyms: ['examples', 'few-shot', 'few shot', 'template', 'format', 'specify', 'specific'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 175,
+        partial_xp_reward: 70,
+        hint: 'Think about system prompts, few-shot examples, and why vague prompts produce vague outputs.',
+      },
     ],
   },
   {
@@ -323,7 +419,7 @@ const CONTENT_DATA = [
     title: 'AI Hallucinations',
     creator: '@IBMTechnology',
     category: 'AI Safety',
-    xp: 300,
+    xp: 500,
     guruTitle: 'AI Safety Guru',
     applicationScenario: {
       role: 'AI Safety Officer',
@@ -378,6 +474,30 @@ const CONTENT_DATA = [
         partial_xp_reward: 60,
         hint: 'Compare it to a confident student who makes up an answer rather than saying "I don\'t know."',
       },
+      {
+        id: 'c5_3',
+        type: 'APPLY',
+        title: 'Real-World: Medical AI Risk',
+        prompt: 'A medical startup wants to use AI to diagnose patients. As their AI Safety Officer, explain WHY this is dangerous and WHAT safeguards must be in place.',
+        initialAiMessage: "We trained a GPT model on medical textbooks. It diagnosed 3 test cases correctly! We want to launch it to real patients next month. Our investors love the idea. What's the hold up?",
+        required_concepts: [
+          [
+            { term: 'wrong', synonyms: ['incorrect', 'mistake', 'error', 'misdiagnose', 'false', 'inaccurate', 'hallucinate', 'make up'], weight: 3 },
+          ],
+          [
+            { term: 'human', synonyms: ['doctor', 'physician', 'clinician', 'medical professional', 'oversight', 'review', 'verify'], weight: 3 },
+          ],
+          [
+            { term: 'harm', synonyms: ['danger', 'risk', 'death', 'injury', 'patient safety', 'lives', 'life-threatening', 'liability'], weight: 3 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 30,
+        max_reading_level: null,
+        xp_reward: 200,
+        partial_xp_reward: 80,
+        hint: 'Think about patient safety, the difference between 3 test cases vs real-world deployment, and why human oversight is non-negotiable.',
+      },
     ],
   },
   {
@@ -386,7 +506,7 @@ const CONTENT_DATA = [
     title: 'Git for AI Projects',
     creator: '@fireship',
     category: 'AI Tooling',
-    xp: 200,
+    xp: 350,
     guruTitle: 'Version Control Guru',
     applicationScenario: {
       role: 'ML Ops Engineer',
@@ -414,6 +534,27 @@ const CONTENT_DATA = [
         partial_xp_reward: 40,
         hint: 'A branch is just a movable pointer to a commit.',
       },
+      {
+        id: 'c6_2',
+        type: 'APPLY',
+        title: 'Real-World: Deleted Branch',
+        prompt: 'A junior ML engineer deleted a training branch with weeks of experiment results. They think everything is lost forever. Explain WHY the work is NOT gone and HOW to recover it.',
+        initialAiMessage: "I accidentally ran 'git branch -D experiments' and now all my training configs and results are gone! I didn't push it anywhere. It's been 2 weeks of work. Is there any way to get it back?",
+        required_concepts: [
+          [
+            { term: 'reflog', synonyms: ['ref log', 'git reflog', 'log', 'history', 'still there', 'not deleted'], weight: 3 },
+          ],
+          [
+            { term: 'commit', synonyms: ['commits', 'committed', 'hash', 'sha', 'snapshot', 'saved'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 20,
+        max_reading_level: null,
+        xp_reward: 150,
+        partial_xp_reward: 60,
+        hint: 'Git reflog keeps a record of where HEAD has been. Commits are not immediately garbage collected.',
+      },
     ],
   },
   {
@@ -422,7 +563,7 @@ const CONTENT_DATA = [
     title: 'React for AI Apps',
     creator: '@fireship',
     category: 'AI Tooling',
-    xp: 250,
+    xp: 425,
     guruTitle: 'AI Frontend Guru',
     applicationScenario: {
       role: 'AI Frontend Engineer',
@@ -476,6 +617,28 @@ const CONTENT_DATA = [
         xp_reward: 125,
         partial_xp_reward: 50,
         hint: 'Compare it to reloading vs. surgically updating parts of the page.',
+      },
+      {
+        id: 'c7_3',
+        type: 'APPLY',
+        title: 'Real-World: Freezing Chat UI',
+        prompt: 'Your ChatGPT-like interface freezes on every keystroke while streaming AI responses. Explain WHY this happens and WHAT React patterns would fix it.',
+        initialAiMessage: "Our AI chat app locks up completely when the AI is streaming a long response. Users can't even scroll or type. Our React code re-renders everything on each new token. Help!",
+        required_concepts: [
+          [
+            { term: 're-render', synonyms: ['rerender', 'rendering', 'renders', 'render cycle', 'unnecessary render', 'too many renders'], weight: 3 },
+          ],
+          [
+            { term: 'memo', synonyms: ['memoize', 'memoization', 'useMemo', 'useCallback', 'React.memo', 'cache', 'skip'], weight: 3 },
+            { term: 'virtualize', synonyms: ['virtualization', 'virtual list', 'windowing', 'FlatList', 'only visible'], weight: 2 },
+          ],
+        ],
+        forbidden_terms: [],
+        min_word_count: 25,
+        max_reading_level: null,
+        xp_reward: 175,
+        partial_xp_reward: 70,
+        hint: 'Think about memoization (React.memo, useMemo), list virtualization, and isolating re-renders.',
       },
     ],
   },
@@ -614,6 +777,33 @@ const ConceptBreakdown = ({ breakdown }) => {
           <Text style={{ fontSize: 14 }}>{'\uD83E\uDDE0'}</Text>
           <Text style={styles.breakdownText}>
             Depth bonus: +{breakdown.depthBonus} pts
+          </Text>
+        </View>
+      )}
+
+      {breakdown.whyDepthBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={{ fontSize: 14 }}>{'\uD83D\uDD0D'}</Text>
+          <Text style={styles.breakdownText}>
+            Why-depth bonus: +{Math.min(10, breakdown.whyDepthBonus)} pts
+          </Text>
+        </View>
+      )}
+
+      {breakdown.analogyBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={{ fontSize: 14 }}>{'\uD83C\uDF1F'}</Text>
+          <Text style={styles.breakdownText}>
+            Analogy bonus: +{breakdown.analogyBonus} pts
+          </Text>
+        </View>
+      )}
+
+      {breakdown.contrastBonus > 0 && (
+        <View style={styles.breakdownRow}>
+          <Text style={{ fontSize: 14 }}>{'\uD83E\uDD14'}</Text>
+          <Text style={styles.breakdownText}>
+            Critical thinking bonus: +{breakdown.contrastBonus} pts
           </Text>
         </View>
       )}
@@ -812,7 +1002,7 @@ const ChatEngine = ({ challenge, onComplete, onExit, isAlreadyComplete }) => {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{challenge.type.replace('_', ' ')}</Text>
           <Text style={styles.headerSubtitle}>
-            {challenge.type === 'TEACH_BACK' ? '\uD83C\uDF93 Feynman Mode' : '\uD83E\uDDEA Accuracy Mode'}
+            {challenge.type === 'TEACH_BACK' ? '\uD83C\uDF93 Feynman Mode' : challenge.type === 'APPLY' ? '\uD83D\uDCBC Apply Mode' : '\uD83E\uDDEA Accuracy Mode'}
           </Text>
         </View>
         <View style={{ width: 24 }} />
@@ -1229,7 +1419,7 @@ export default function App() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.challengeTitle}>{c.title}</Text>
                     <Text style={styles.challengeType}>
-                      {c.type === 'TEACH_BACK' ? '\uD83C\uDF93 Teach Back' : '\uD83E\uDDEA Concept Check'}
+                      {c.type === 'TEACH_BACK' ? '\uD83C\uDF93 Teach Back' : c.type === 'APPLY' ? '\uD83D\uDCBC Apply It' : '\uD83E\uDDEA Concept Check'}
                       {' \u2022 '}+{c.xp_reward} XP
                     </Text>
                   </View>
