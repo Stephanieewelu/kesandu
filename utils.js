@@ -446,6 +446,145 @@ function computeLevel(totalXP) {
   return level;
 }
 
+// ============================================================================
+// STREAK SYSTEM
+// ============================================================================
+
+function getDateKey(date) {
+  const d = date || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function computeStreak(activeDays) {
+  if (!activeDays || activeDays.length === 0) return { current: 0, longest: 0, isActiveToday: false };
+
+  const sorted = [...new Set(activeDays)].sort().reverse();
+  const today = getDateKey();
+  const yesterday = getDateKey(new Date(Date.now() - 86400000));
+
+  const isActiveToday = sorted[0] === today;
+  const startDay = sorted[0] === today || sorted[0] === yesterday ? sorted[0] : null;
+
+  let current = 0;
+  if (startDay) {
+    let checkDate = new Date(startDay + 'T00:00:00');
+    for (const day of sorted) {
+      const expected = getDateKey(checkDate);
+      if (day === expected) {
+        current++;
+        checkDate = new Date(checkDate.getTime() - 86400000);
+      } else if (day < expected) {
+        break;
+      }
+    }
+  }
+
+  let longest = 0;
+  let run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = new Date(sorted[i - 1] + 'T00:00:00');
+    const curr = new Date(sorted[i] + 'T00:00:00');
+    const diff = (prev.getTime() - curr.getTime()) / 86400000;
+    if (diff === 1) {
+      run++;
+    } else {
+      longest = Math.max(longest, run);
+      run = 1;
+    }
+  }
+  longest = Math.max(longest, run, current);
+
+  return { current, longest, isActiveToday };
+}
+
+function computeStreakBonus(currentStreak) {
+  if (currentStreak <= 0) return 0;
+  if (currentStreak >= 30) return 50;
+  if (currentStreak >= 14) return 30;
+  if (currentStreak >= 7) return 20;
+  if (currentStreak >= 3) return 10;
+  return 5;
+}
+
+// ============================================================================
+// ADAPTIVE FEEDBACK ENGINE
+// ============================================================================
+
+const PERFORMANCE_PATTERNS = {
+  STRUGGLING: { maxScore: 39, minAttempts: 2 },
+  IMPROVING: { minScore: 40, maxScore: 69, minAttempts: 2 },
+  STRONG: { minScore: 70 },
+};
+
+function analyzePerformancePattern(history) {
+  if (!history || history.length === 0) return 'NEW';
+  const recent = history.slice(-3);
+  const avgScore = recent.reduce((s, h) => s + h.score, 0) / recent.length;
+  const trend = recent.length >= 2
+    ? recent[recent.length - 1].score - recent[0].score
+    : 0;
+
+  if (avgScore >= 70) return 'STRONG';
+  if (trend > 15 && recent.length >= 2) return 'IMPROVING';
+  if (avgScore < 40 && recent.length >= 2) return 'STRUGGLING';
+  return 'DEVELOPING';
+}
+
+function generateAdaptiveFeedback(pattern, challengeType, score) {
+  const tips = [];
+
+  if (pattern === 'STRUGGLING') {
+    tips.push('Re-watch the video focusing on one concept at a time.');
+    if (challengeType === 'TEACH_BACK') {
+      tips.push('Start with "Imagine you are..." to frame a simple analogy.');
+    } else if (challengeType === 'APPLY') {
+      tips.push('Begin with "The main risk is..." then explain WHY.');
+    } else {
+      tips.push('List the 2-3 key ideas before writing your full answer.');
+    }
+  } else if (pattern === 'IMPROVING') {
+    tips.push('You are making progress! Focus on the concepts you missed.');
+    if (score >= 50) {
+      tips.push('You are close to passing. Add more depth with "because..." or "this means...".');
+    }
+  } else if (pattern === 'STRONG') {
+    tips.push('Excellent mastery! Try using more analogies and real-world examples to push your score even higher.');
+  } else if (pattern === 'NEW') {
+    tips.push('Take your time. There are no penalties for multiple attempts.');
+  }
+
+  return tips;
+}
+
+// ============================================================================
+// ACHIEVEMENT SYSTEM
+// ============================================================================
+
+const ACHIEVEMENTS = [
+  { id: 'first_pass', title: 'First Win', description: 'Pass your first challenge', icon: 'star', condition: (stats) => stats.totalPasses >= 1 },
+  { id: 'five_passes', title: 'High Five', description: 'Pass 5 challenges', icon: 'star', condition: (stats) => stats.totalPasses >= 5 },
+  { id: 'all_modules', title: 'Completionist', description: 'Attempt all 7 modules', icon: 'trophy', condition: (stats) => stats.modulesAttempted >= 7 },
+  { id: 'perfect_score', title: 'Perfectionist', description: 'Score 100 on any challenge', icon: 'diamond', condition: (stats) => stats.highestScore >= 100 },
+  { id: 'streak_3', title: 'On Fire', description: '3-day learning streak', icon: 'fire', condition: (stats) => stats.currentStreak >= 3 },
+  { id: 'streak_7', title: 'Dedicated Learner', description: '7-day learning streak', icon: 'fire', condition: (stats) => stats.currentStreak >= 7 },
+  { id: 'streak_30', title: 'Unstoppable', description: '30-day learning streak', icon: 'fire', condition: (stats) => stats.currentStreak >= 30 },
+  { id: 'guru_1', title: 'First Guru', description: 'Earn your first Guru title', icon: 'award', condition: (stats) => stats.guruCount >= 1 },
+  { id: 'guru_all', title: 'Grand Master', description: 'Earn all Guru titles', icon: 'crown', condition: (stats) => stats.guruCount >= 7 },
+  { id: 'teach_master', title: 'Born Teacher', description: 'Pass 5 Teach Back challenges', icon: 'book', condition: (stats) => stats.teachBackPasses >= 5 },
+  { id: 'apply_master', title: 'Practitioner', description: 'Pass 5 Apply challenges', icon: 'briefcase', condition: (stats) => stats.applyPasses >= 5 },
+  { id: 'analogy_king', title: 'Analogy King', description: 'Use 10+ analogies across all answers', icon: 'sparkle', condition: (stats) => stats.totalAnalogies >= 10 },
+];
+
+function checkAchievements(stats, unlockedIds) {
+  const newlyUnlocked = [];
+  for (const achievement of ACHIEVEMENTS) {
+    if (!unlockedIds.includes(achievement.id) && achievement.condition(stats)) {
+      newlyUnlocked.push(achievement);
+    }
+  }
+  return newlyUnlocked;
+}
+
 module.exports = {
   // Guru Rank
   GURU_RANKS,
@@ -490,4 +629,15 @@ module.exports = {
   // XP
   xpForLevel,
   computeLevel,
+  // Streak
+  getDateKey,
+  computeStreak,
+  computeStreakBonus,
+  // Adaptive Feedback
+  PERFORMANCE_PATTERNS,
+  analyzePerformancePattern,
+  generateAdaptiveFeedback,
+  // Achievements
+  ACHIEVEMENTS,
+  checkAchievements,
 };
