@@ -30,6 +30,7 @@ import VideoFeedItem from './src/components/VideoFeedItem';
 import GuruCelebration from './src/components/GuruCelebration';
 import AchievementToast from './src/components/AchievementToast';
 import StreakBadge from './src/components/StreakBadge';
+import StreamlitScreen from './src/screens/StreamlitScreen';
 
 const { width, height } = Dimensions.get('window');
 const IS_IOS = Platform.OS === 'ios';
@@ -44,6 +45,8 @@ function AppContent() {
   const [activeChallenge, setActiveChallenge] = useState(null);
   const [showCelebration, setShowCelebration] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showStreamlit, setShowStreamlit] = useState(false);
+  const [streamlitUrl] = useState('http://localhost:8501');
   const [certificateModule, setCertificateModule] = useState(null);
   const { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress, completedChallenges } = useXP();
   const { hasOnboarded, completeOnboarding } = useOnboarding();
@@ -315,7 +318,12 @@ function AppContent() {
           level={level}
           streak={streakInfo.current}
           achievements={unlockedIds.length}
+          onOpenStreamlit={() => setShowStreamlit(true)}
         />
+      </Modal>
+
+      <Modal visible={showStreamlit} animationType="slide">
+        <StreamlitScreen url={streamlitUrl} />
       </Modal>
 
       {/* ACHIEVEMENT TOAST */}

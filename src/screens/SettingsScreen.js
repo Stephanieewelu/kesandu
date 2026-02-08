@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = '@kesandu_guru_xp';
 const ONBOARDING_KEY = '@kesandu_onboarding_done';
 
-export default function SettingsScreen({ onClose, totalXP, level, streak = 0, achievements = 0 }) {
+export default function SettingsScreen({ onClose, totalXP, level, streak = 0, achievements = 0, onOpenStreamlit }) {
   const [resetting, setResetting] = useState(false);
 
   const handleResetProgress = () => {
@@ -113,6 +113,18 @@ export default function SettingsScreen({ onClose, totalXP, level, streak = 0, ac
             {resetting ? 'Resetting...' : 'Reset All Progress'}
           </Text>
           <Text style={[styles.menuArrow, styles.dangerText]}>{'>'}</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>INTEGRATIONS</Text>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={onOpenStreamlit}
+          accessibilityRole="button"
+          accessibilityLabel="Open Streamlit dashboard"
+        >
+          <Text style={styles.menuText}>Open Streamlit Dashboard</Text>
+          <Text style={styles.menuArrow}>{'>'}</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>ABOUT</Text>
