@@ -218,30 +218,49 @@ function computeLevel(totalXP) {
 }
 
 // ============================================================================
-// STREAK
+// STREAK SYSTEM
 // ============================================================================
+
 function getDateKey(date) {
   const d = date || new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
 function computeStreak(activeDays) {
-  if (!activeDays || activeDays.length === 0) return { current: 0, longest: 0, isActiveToday: false };
+  // Safety check: handle undefined, null, or empty array
+  if (!activeDays || !Array.isArray(activeDays) || activeDays.length === 0) {
+    return { current: 0, longest: 0, isActiveToday: false };
+  }
+
   const sorted = [...new Set(activeDays)].sort().reverse();
-  const today = getDateKey(), yesterday = getDateKey(new Date(Date.now() - 86400000));
+  const today = getDateKey();
+  const yesterday = getDateKey(new Date(Date.now() - 86400000));
   const isActiveToday = sorted[0] === today;
-  const startDay = (sorted[0] === today || sorted[0] === yesterday) ? sorted[0] : null;
+  const startDay = sorted[0] === today || sorted[0] === yesterday ? sorted[0] : null;
+
   let current = 0;
   if (startDay) {
-    let cd = new Date(startDay + 'T00:00:00');
+    let cd = new Date(`${startDay}T00:00:00`);
     for (const day of sorted) {
-      if (day === getDateKey(cd)) { current++; cd = new Date(cd.getTime() - 86400000); }
-      else if (day < getDateKey(cd)) break;
+      if (day === getDateKey(cd)) {
+        current++;
+        cd = new Date(cd.getTime() - 86400000);
+      } else {
+        break;
+      }
     }
   }
+
   return { current, longest: Math.max(current, 1), isActiveToday };
 }
+
 function computeStreakBonus(s) {
-  if (s <= 0) return 0; if (s >= 30) return 50; if (s >= 14) return 30; if (s >= 7) return 20; if (s >= 3) return 10; return 5;
+  if (s === 0) return 0;
+  if (s >= 30) return 50;
+  if (s >= 14) return 30;
+  if (s >= 7) return 20;
+  if (s >= 3) return 10;
+  return 5;
 }
 
 // ============================================================================
@@ -380,18 +399,38 @@ function useXP() {
   return { totalXP, level, currentLevelXP, nextLevelXP, awardXP, isComplete, loaded, getModuleProgress, completedChallenges };
 }
 
+
 function useStreak() {
-  const [activeDays, setActiveDays] = useState([]);
+  const [activeDays, setActiveDays] = useState([]);  // Initialize with empty array
   const [streakLoaded, setStreakLoaded] = useState(false);
+
   useEffect(() => {
-    AsyncStorage.getItem('@kesandu_streak').then(v => { if (v) setActiveDays(JSON.parse(v)); setStreakLoaded(true); }).catch(() => setStreakLoaded(true));
+    AsyncStorage.getItem('@kesandu_streak')
+      .then(v => {
+        if (v) {
+          const parsed = JSON.parse(v);
+          setActiveDays(Array.isArray(parsed) ? parsed : []);  // Ensure it's an array
+        }
+        setStreakLoaded(true);
+      })
+      .catch(() => {
+        setStreakLoaded(true);
+      });
   }, []);
-  useEffect(() => { if (streakLoaded) AsyncStorage.setItem('@kesandu_streak', JSON.stringify(activeDays)).catch(() => {}); }, [activeDays, streakLoaded]);
+
+  useEffect(() => {
+    if (streakLoaded && activeDays.length >= 0) {
+      AsyncStorage.setItem('@kesandu_streak', JSON.stringify(activeDays)).catch(() => {});
+    }
+  }, [activeDays, streakLoaded]);
+
   const recordActivity = useCallback(() => {
     const today = getDateKey();
-    setActiveDays(p => p.includes(today) ? p : [...p, today]);
+    setActiveDays(p => (p.includes(today) ? p : [...p, today]));
   }, []);
+
   const streakInfo = computeStreak(activeDays);
+
   return { streakInfo, recordActivity, streakLoaded };
 }
 
