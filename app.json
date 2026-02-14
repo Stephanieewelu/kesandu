@@ -23,7 +23,8 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "output": "static"
+      "output": "static",
+      "dist": "web-build"
     },
     "plugins": [],
     "extra": {
