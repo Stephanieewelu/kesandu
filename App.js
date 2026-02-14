@@ -22,7 +22,6 @@ import useStreak from './src/hooks/useStreak';
 import useAchievements from './src/hooks/useAchievements';
 
 // Components
-import ErrorBoundary from './src/components/ErrorBoundary';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import CertificateScreen from './src/components/CertificateScreen';
@@ -341,11 +340,7 @@ function AppContent() {
 }
 
 export default function App() {
-  return (
-    <ErrorBoundary>
-      <AppContent />
-    </ErrorBoundary>
-  );
+  return <AppContent />;
 }
 // ============================================================================
 // STYLES
