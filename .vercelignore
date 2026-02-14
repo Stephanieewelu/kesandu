@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Development
+node_modules
+.expo
+.env
+.env.local
+.env.*.local
+
+# Testing
+__tests__
+*.test.js
+*.spec.js
+.playwright
+
+# Build artifacts
+web-build
+dist
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+gemini-proxy
+n8n_workflow_kesandu.json
+capture-screenshots.js
+scripts/
