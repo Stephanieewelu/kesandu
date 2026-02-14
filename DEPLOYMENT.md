@@ -23,9 +23,10 @@ Configure these variables in your Vercel project settings:
 ## Build Configuration
 
 ### Framework
-- **Type:** Expo (React Native Web)
+- **Type:** Static Site (Expo Web Export)
 - **Build Command:** `npm run export`
 - **Output Directory:** `web-build`
+- **Install Command:** `npm ci`
 - **Node Version:** 18+ (recommended 20)
 
 ### Build Process
@@ -38,7 +39,7 @@ Configure these variables in your Vercel project settings:
 ### Initial Setup
 1. Connect your GitHub repository to Vercel
 2. Create a new project
-3. Select "Expo" as the framework
+3. Vercel will auto-detect the configuration from `vercel.json`
 4. Configure environment variables in project settings:
    - `EXPO_PUBLIC_GEMINI_API_KEY`
    - `EXPO_PUBLIC_API_URL`
