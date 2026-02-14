@@ -59,7 +59,7 @@ async function callGemini(prompt) {
     let requestBody;
 
     if (API_CONFIG.apiUrl) { // Use proxy if API_CONFIG.apiUrl is set
-      requestUrl = `${API_CONFIG.apiUrl}/gemini/generateContent`;
+      requestUrl = `${API_CONFIG.apiUrl}/api/gemini/generateContent`;
       requestBody = JSON.stringify({ prompt });
       console.log('Calling Gemini via proxy');
     } else { // Fallback to direct Gemini API
