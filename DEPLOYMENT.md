@@ -25,14 +25,17 @@ Configure these variables in your Vercel project settings:
 ### Framework
 - **Type:** Static Site (Expo Web Export)
 - **Build Command:** `npm run export`
-- **Output Directory:** `web-build`
+- **Output Directory:** `dist`
 - **Install Command:** `npm ci`
 - **Node Version:** 18+ (recommended 20)
 
 ### Build Process
 1. Install dependencies: `npm ci`
-2. Export Expo web bundle: `npx expo export`
-3. Output generated to `web-build/` directory
+2. Export Expo web bundle: `npx expo export --clear`
+3. Output generated to `dist/` directory with the following structure:
+   - `index.html` - Entry point
+   - `_expo/static/js/web/` - Web bundles
+   - `favicon.ico` - Site favicon
 
 ## Deployment Steps
 
@@ -49,9 +52,10 @@ Configure these variables in your Vercel project settings:
 - **.vercelignore:** Files to exclude from the build
 
 ### Caching Strategy
-- Static assets (images, fonts) in `/assets/`: 1 year cache (immutable)
-- Build artifacts in `/_next/static/`: 1 year cache (immutable)
-- HTML pages and dynamic content: 1 hour cache
+- HTML entry point (`index.html`): 1 hour cache (dynamic)
+- Build artifacts in `/_expo/static/js/web/`: 1 year cache (immutable - versioned filenames)
+- Static assets in `/assets/`: 1 year cache (immutable)
+- Fallback HTML for client-side routing: 1 hour cache
 
 ## After Deployment
 
