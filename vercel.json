@@ -2,16 +2,7 @@
   "buildCommand": "npm run export",
   "outputDirectory": "web-build",
   "devCommand": "npx expo start --web",
-  "framework": "expo",
-  "projectSettings": {
-    "buildCommand": "npm run export",
-    "outputDirectory": "web-build",
-    "installCommand": "npm ci"
-  },
-  "env": {
-    "EXPO_PUBLIC_GEMINI_API_KEY": "@gemini_api_key",
-    "EXPO_PUBLIC_API_URL": "@api_url"
-  },
+  "installCommand": "npm ci",
   "headers": [
     {
       "source": "/(.*)",
@@ -23,7 +14,7 @@
       ]
     },
     {
-      "source": "/_next/static/(.*)",
+      "source": "/static/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
