@@ -23,16 +23,16 @@ Configure these variables in your Vercel project settings:
 ## Build Configuration
 
 ### Framework
-- **Type:** Static Site (Expo Web Export)
+- **Type:** Single Page Application (Expo Web Export)
 - **Build Command:** `npm run export`
-- **Output Directory:** `web-build`
+- **Output Directory:** `dist`
 - **Install Command:** `npm ci`
 - **Node Version:** 18+ (recommended 20)
 
 ### Build Process
 1. Install dependencies: `npm ci`
-2. Export Expo web bundle: `npx expo export`
-3. Output generated to `web-build/` directory
+2. Export Expo web bundle: `npx expo export --platform web`
+3. Output generated to `dist/` directory
 
 ## Deployment Steps
 
