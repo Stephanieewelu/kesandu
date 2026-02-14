@@ -26,11 +26,11 @@ Configure these variables in your Vercel project settings:
 - **Type:** Static Site (Expo Web Export)
 - **Build Command:** `npm run export`
 - **Output Directory:** `dist`
-- **Install Command:** `npm ci`
+- **Install Command:** `npm install`
 - **Node Version:** 18+ (recommended 20)
 
 ### Build Process
-1. Install dependencies: `npm ci`
+1. Install dependencies: `npm install`
 2. Export Expo web bundle: `npx expo export --clear`
 3. Output generated to `dist/` directory with the following structure:
    - `index.html` - Entry point
