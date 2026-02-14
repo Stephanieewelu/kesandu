@@ -98,6 +98,7 @@ async function callGemini(prompt) {
     text = text.trim();
 
     console.log('Gemini response (first 100):', text.substring(0, 100));
+    console.log('Full response:', text);
     return text;
   } catch (error) {
     console.error('callGemini error:', error.message);
@@ -144,12 +145,14 @@ Respond in this exact JSON format:
 }`;
     try {
       const raw = await callGemini(prompt);
+      console.log('Raw Gemini response:', raw.substring(0, 200));
       const parsed = JSON.parse(raw);
       return {
         text: parsed.text || "Let's think about this differently...",
         evaluation: parsed.evaluation || { depth_level: 0 },
       };
     } catch (error) {
+      console.error('FirstPrinciples converse error:', error.message, 'Raw response:', error);
       return {
         text: "I had trouble processing that. Could you rephrase your thinking?",
         evaluation: { depth_level: 0 },
