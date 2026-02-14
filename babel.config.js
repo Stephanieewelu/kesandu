@@ -1,6 +1,11 @@
 module.exports = function (api) {
-  api.cache(true);
+  const presets = [
+    api.env('web') ? '@babel/preset-env' : 'babel-preset-expo'
+  ];
   return {
-    presets: ['babel-preset-expo'],
+    presets,
+    plugins: [
+
+    ]
   };
 };

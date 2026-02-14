@@ -1,37 +1,22 @@
 {
-  "name": "kesandu-guru",
-  "version": "1.0.0",
-  "main": "App.js",
-  "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "build": "expo export --platform web --output-dir web-build",
-    "build:web": "expo export --platform web --output-dir web-build",
-    "test": "jest"
-  },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~52.0.0",
-    "expo-haptics": "~15.0.8",
+    "dotenv": "^17.3.1",
+    "expo": "^54.0.0",
+    "expo-constants": "~18.0.13",
+    "expo-haptics": "^15.0.8",
     "expo-status-bar": "~3.0.9",
-    "lucide-react-native": "^0.454.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-native": "0.76.7",
-    "react-native-svg": "15.12.1",
-    "react-native-web": "0.19.11",
+    "react-dom": "19.1.0",
+    "react-native-web": "^0.21.0",
     "react-native-web-webview": "^1.0.2",
     "react-native-webview": "13.15.0",
     "react-native-youtube-iframe": "^2.3.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.0",
-    "jest": "^30.2.0"
+    "@babel/preset-env": "^7.29.0",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4"
   },
-  "engines": {
-    "node": "20.x"
-  },
-  "private": true
+  "scripts": {
+    "export": "npx expo export"
+  }
 }

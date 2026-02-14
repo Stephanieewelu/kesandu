@@ -13,29 +13,19 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.kesandu.guru",
-      "buildNumber": "1",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoadsInWebContent": true
-        }
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
-      },
-      "package": "com.kesandu.guru",
-      "versionCode": 1
+      }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "static"
     },
-    "plugins": [
-      "expo-haptics"
-    ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "kesandu-guru"

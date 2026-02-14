@@ -1,9 +1,6 @@
 {
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "web-build" }
-    }
-  ]
+  "buildCommand": "npm run export",
+  "outputDirectory": "web-build",
+  "devCommand": "npx expo start --web",
+  "framework": "expo"
 }

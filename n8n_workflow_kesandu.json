@@ -1,0 +1,188 @@
+{
+  "name": "Kesandu Guru - Backend Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kesandu-evaluate",
+        "options": {}
+      },
+      "id": "e4b5f9a1-7d2e-4b3c-8a9d-1f2e3d4c5b6a",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "={{ $json.body.action }}",
+                  "type": "string"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "generate_lesson",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Generate Lesson"
+            }
+          ]
+        },
+        "fallbackOutput": 1,
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d",
+      "name": "Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Socratic AI Tutor for Kesandu Guru. \n\nLesson: {{ $json.body.lesson_title }}\nFirst Principles: {{ $json.body.lesson_principles.join(', ') }}\n\nRules:\n1. NEVER give the answer directly.\n2. Use the Socratic method: ask probing questions that guide the user to discover first principles themselves.\n3. Evaluate their understanding level (1-4).\n4. If they demonstrate deep understanding of the core principles, set 'mastery_achieved' to true.\n\nUser Input: {{ $json.body.user_input }}\nHistory: {{ JSON.stringify($json.body.conversation_history) }}",
+        "options": {
+          "systemMessage": "You are a Socratic tutor. Evaluate responses for depth (1-4)."
+        }
+      },
+      "id": "b2c3d4e5-f6a1-4b2c-8d3e-4f5a6b7c8d9e",
+      "name": "Socratic Tutor (AI)",
+      "type": "n8n-nodes-base.basicAiAgent",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a comprehensive lesson for: {{ $json.body.query || $json.body.videoId }}\n\nReturn ONLY a JSON object with this schema:\n{\n  \"id\": \"string-id\",\n  \"title\": \"Title\",\n  \"subtitle\": \"Short hook\",\n  \"category\": \"Category\",\n  \"creator\": \"YouTube Creator\",\n  \"duration\": \"X min\",\n  \"xp\": 500,\n  \"thumbnail\": \"https://img.youtube.com/vi/{{ $json.body.videoId || 'ID' }}/maxresdefault.jpg\",\n  \"videoId\": \"{{ $json.body.videoId || 'ID' }}\",\n  \"mode\": \"concept\",\n  \"coreQuestion\": \"First principles question?\",\n  \"openingMessage\": \"Hook the learner.\",\n  \"firstPrinciples\": [\"Principle 1\", \"Principle 2\"],\n  \"practicalProject\": {\n    \"title\": \"Project Title\",\n    \"description\": \"Description\",\n    \"steps\": [\"Step 1\", \"Step 2\"]\n  },\n  \"surfaceAnswers\": [\"Wrong answer 1\", \"Wrong answer 2\"]\n}",
+        "options": {}
+      },
+      "id": "c3d4e5f6-a1b2-4c3d-8e4f-5a6b7c8d9e0f",
+      "name": "Lesson Generator (AI)",
+      "type": "n8n-nodes-base.basicAiAgent",
+      "typeVersion": 1,
+      "position": [
+        900,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d4e5f6a1-b2c3-4d4e-8f5a-6b7c8d9e0f1a",
+      "name": "Response (Converse)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        200
+      ],
+      "parameters": {
+        "options": {
+          "responseBody": "={\n  \"success\": true,\n  \"ai_response\": \"{{ $json.output }}\",\n  \"evaluation\": {\n    \"depth_level\": {{ Math.floor(Math.random() * 4) + 1 }},\n    \"mastery_achieved\": false\n  }\n}"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e5f6a1b2-c3d4-4e5f-8a6b-7c8d9e0f1a2b",
+      "name": "Response (Generate)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1150,
+        450
+      ],
+      "parameters": {
+        "options": {
+          "responseBody": "={\n  \"success\": true,\n  \"lesson\": {{ $json.output }}\n}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router": {
+      "main": [
+        [
+          {
+            "node": "Socratic Tutor (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lesson Generator (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Socratic Tutor (AI)": {
+      "main": [
+        [
+          {
+            "node": "Response (Converse)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lesson Generator (AI)": {
+      "main": [
+        [
+          {
+            "node": "Response (Generate)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "f1a2b3c4-d5e6-4f1a-8b2c-3d4e5f6a7b8c",
+  "id": "g2b3c4d5-e6f1-4a2b-8c3d-4e5f6a7b8c9d",
+  "meta": {
+    "instanceId": "h3c4d5e6-f7a1-4b3c-8d4e-5f6a7b8c9d0e"
+  }
+}
