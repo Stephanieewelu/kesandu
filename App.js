@@ -1915,7 +1915,7 @@ const LessonCard = ({ lesson, isCompleted, depthLevel, onPress, onWatchVideo }) 
 // ============================================================================
 // HOME SCREEN - UPDATED WITH ALL FEATURES
 // ============================================================================
-const HomeScreen = ({ userData, onSelectLesson }) => {
+const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboard }) => {
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReview, setShowReview] = useState(false);
@@ -2226,8 +2226,16 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
           <Text style={styles.homeTitle}>Kesandu</Text>
           <Text style={styles.homeSubtitle}>Birth of a Guru</Text>
         </View>
-        <View style={styles.xpBadge}>
-          <Text style={styles.xpText}>{userData.totalXP || 0} XP</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.xpBadge}
+            onPress={() => onNavigateToDashboard?.()}
+          >
+            <Text style={styles.xpText}>📊</Text>
+          </TouchableOpacity>
+          <View style={styles.xpBadge}>
+            <Text style={styles.xpText}>{userData.totalXP || 0} XP</Text>
+          </View>
         </View>
       </View>
 
