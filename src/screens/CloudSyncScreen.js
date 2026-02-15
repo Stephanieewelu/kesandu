@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView,
   TextInput, Modal, Alert, ActivityIndicator
 } from 'react-native';
-import useMobileSync from '../hooks/useMobileSync';
+import useMobileSync from '../hooks/useMobileSyncSupabase';
 
 const COLORS = {
   bg: '#09090B',
@@ -24,19 +24,35 @@ export default function CloudSyncScreen() {
   const sync = useMobileSync();
   const [showLoginModal, setShowLoginModal] = useState(!sync.isAuthenticated);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [deviceName, setDeviceName] = useState('My Device');
   const [syncProgress, setSyncProgress] = useState(null);
+  const [isSignUp, setIsSignUp] = useState(true);
 
   const handleLogin = async () => {
-    if (!email || !name) {
-      Alert.alert('Required Fields', 'Please enter both email and name');
+    if (!email || !password) {
+      Alert.alert('Required Fields', 'Please enter email and password');
       return;
     }
 
-    await sync.registerUser(email, name);
-    await sync.registerDevice(deviceName);
-    setShowLoginModal(false);
+    if (isSignUp && !name) {
+      Alert.alert('Required Fields', 'Please enter your name');
+      return;
+    }
+
+    if (isSignUp) {
+      const user = await sync.registerUser(email, password, name);
+      if (user) {
+        await sync.registerDevice(deviceName);
+        setShowLoginModal(false);
+      }
+    } else {
+      const user = await sync.loginUser(email, password);
+      if (user) {
+        setShowLoginModal(false);
+      }
+    }
   };
 
   const handleSync = async () => {
@@ -82,7 +98,7 @@ export default function CloudSyncScreen() {
           </View>
 
           <View style={styles.loginCard}>
-            <Text style={styles.loginTitle}>Sign In to Kesandu</Text>
+            <Text style={styles.loginTitle}>{isSignUp ? 'Create Account' : 'Sign In'}</Text>
             <TextInput
               style={styles.input}
               placeholder="Email"
@@ -90,23 +106,64 @@ export default function CloudSyncScreen() {
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
+              editable={!sync.loading}
             />
             <TextInput
               style={styles.input}
-              placeholder="Full Name"
+              placeholder="Password"
               placeholderTextColor={COLORS.textMuted}
-              value={name}
-              onChangeText={setName}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              editable={!sync.loading}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Device Name (e.g., My iPhone)"
-              placeholderTextColor={COLORS.textMuted}
-              value={deviceName}
-              onChangeText={setDeviceName}
-            />
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Create Account & Sign In</Text>
+            {isSignUp && (
+              <>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Full Name"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={name}
+                  onChangeText={setName}
+                  editable={!sync.loading}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Device Name (e.g., My iPhone)"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={deviceName}
+                  onChangeText={setDeviceName}
+                  editable={!sync.loading}
+                />
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleLogin}
+              disabled={sync.loading}
+            >
+              <Text style={styles.loginButtonText}>
+                {sync.loading ? 'Processing...' : (isSignUp ? 'Create Account' : 'Sign In')}
+              </Text>
+            </TouchableOpacity>
+
+            {sync.syncError && (
+              <View style={styles.errorCard}>
+                <Text style={styles.errorText}>{sync.syncError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsSignUp(!isSignUp);
+                setEmail('');
+                setPassword('');
+                setName('');
+              }}
+            >
+              <Text style={styles.toggleAuthText}>
+                {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -642,5 +699,12 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     fontSize: 13,
     fontWeight: '600',
+  },
+  toggleAuthText: {
+    color: COLORS.info,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginTop: 16,
   },
 });
