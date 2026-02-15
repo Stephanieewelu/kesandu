@@ -2261,15 +2261,15 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
           }}
         >
           {[
-            { id: 'home', label: 'Learn', icon: '🏠' },
-            { id: 'interview', label: 'Interview', icon: '🎤' },
-            { id: 'practice', label: 'Practice', icon: '💻' },
-            { id: 'portfolio', label: 'Portfolio', icon: '📁' },
-            { id: 'spaced', label: 'Review', icon: '🧠' },
-            { id: 'code', label: 'Code', icon: '📝' },
-            { id: 'sync', label: 'Sync', icon: '☁️' },
-            { id: 'challenges', label: 'Challenges', icon: '🎯' },
-            { id: 'achievements', label: 'Badges', icon: '🏆' },
+            { id: 'home', label: 'Learn' },
+            { id: 'interview', label: 'Interview' },
+            { id: 'practice', label: 'Practice' },
+            { id: 'portfolio', label: 'Portfolio' },
+            { id: 'spaced', label: 'Review' },
+            { id: 'code', label: 'Code' },
+            { id: 'sync', label: 'Sync' },
+            { id: 'challenges', label: 'Challenges' },
+            { id: 'achievements', label: 'Badges' },
           ].map(tab => (
             <TouchableOpacity
               key={tab.id}
@@ -2277,15 +2277,13 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
                 paddingHorizontal: 12,
                 paddingVertical: 8,
                 alignItems: 'center',
-                gap: 4,
                 borderRadius: 8,
                 backgroundColor: activeTab === tab.id ? COLORS.surfaceLight : 'transparent',
               }}
               onPress={() => setActiveTab(tab.id)}
             >
-              <Text style={{ fontSize: 18 }}>{tab.icon}</Text>
               <Text style={{
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: '600',
                 color: activeTab === tab.id ? COLORS.accent : COLORS.textMuted,
               }}>{tab.label}</Text>
