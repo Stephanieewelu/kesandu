@@ -18,7 +18,18 @@ import CloudSyncScreen from './src/screens/CloudSyncScreen';
 import CodeReviewScreen from './src/screens/CodeReviewScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import EditProblemScreen from './src/screens/EditProblemScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import useMobileSync from './src/hooks/useMobileSyncSupabase';
+import {
+  Home as HomeIcon,
+  MessageSquare,
+  Code,
+  Briefcase,
+  Brain,
+  GitPullRequest,
+  Cloud,
+  LayoutDashboard,
+} from 'lucide-react-native';
 
 
 const { width } = Dimensions.get('window');
@@ -45,6 +56,163 @@ const COLORS = {
 const TYPOGRAPHY = {
   mono: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
 };
+
+// ============================================
+// BOTTOM TAB BAR COMPONENT
+// ============================================
+const TAB_CONFIG = [
+  { key: 'home',              label: 'Home',        icon: 'Home'           },
+  { key: 'interview',         label: 'Interview',   icon: 'MessageSquare'  },
+  { key: 'practice',          label: 'Practice',    icon: 'Code'           },
+  { key: 'portfolio',         label: 'Portfolio',   icon: 'Briefcase'      },
+  { key: 'spacedRepetition',  label: 'Review',      icon: 'Brain'          },
+  { key: 'codeReview',        label: 'Code Rev',    icon: 'GitPullRequest' },
+  { key: 'cloudSync',         label: 'Sync',        icon: 'Cloud'          },
+  { key: 'dashboard',         label: 'Dashboard',   icon: 'LayoutDashboard'},
+];
+
+const ICON_MAP = {
+  Home: HomeIcon,
+  MessageSquare,
+  Code,
+  Briefcase,
+  Brain,
+  GitPullRequest,
+  Cloud,
+  LayoutDashboard,
+};
+
+const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
+  const [scrollOffset, setScrollOffset] = React.useState(0);
+  const scrollViewRef = React.useRef(null);
+
+  return (
+    <View style={tabStyles.wrapper}>
+      {/* Gradient fade hint on left */}
+      {scrollOffset > 5 && (
+        <View style={tabStyles.fadeLeft} pointerEvents="none" />
+      )}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={tabStyles.container}
+        onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
+        scrollEventThrottle={16}
+        style={tabStyles.scrollView}
+      >
+        {TAB_CONFIG.map((tab) => {
+          const isActive = currentScreen === tab.key;
+          const IconComponent = ICON_MAP[tab.icon];
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[
+                tabStyles.tab,
+                isActive && tabStyles.tabActive,
+              ]}
+              onPress={() => onChangeScreen(tab.key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={`Navigate to ${tab.label}`}
+            >
+              {IconComponent && (
+                <IconComponent
+                  size={20}
+                  color={isActive ? COLORS.accent : COLORS.textSecondary}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                />
+              )}
+              <Text
+                style={[
+                  tabStyles.label,
+                  isActive && tabStyles.labelActive,
+                ]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+              {isActive && <View style={tabStyles.indicator} />}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+      {/* Gradient fade hint on right */}
+      <View style={tabStyles.fadeRight} pointerEvents="none" />
+    </View>
+  );
+};
+
+const tabStyles = StyleSheet.create({
+  wrapper: {
+    position: 'relative',
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    zIndex: 100,
+  },
+  scrollView: {
+    flexGrow: 0,
+  },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    justifyContent: 'center',
+    minWidth: '100%',
+  },
+  tab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 2,
+    borderRadius: 12,
+    minWidth: 64,
+    position: 'relative',
+  },
+  tabActive: {
+    backgroundColor: `${COLORS.accent}15`,
+  },
+  label: {
+    fontSize: 10,
+    marginTop: 4,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  labelActive: {
+    color: COLORS.accent,
+    fontWeight: '700',
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 2,
+    width: 20,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.accent,
+  },
+  fadeLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 24,
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+  fadeRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 24,
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+});
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const API_URL = 'https://gemini-proxy.vercel.app';
@@ -2337,33 +2505,7 @@ export default function App() {
     );
   }
 
-  // Handle different screens
-  if (currentScreen === 'dashboard') {
-    return (
-      <DashboardScreen
-        userProfile={sync.userProfile}
-        onNavigate={(screen, data) => {
-          if (screen === 'settings') setCurrentScreen('settings');
-          if (screen === 'editProblem') setEditingProblem(data);
-        }}
-      />
-    );
-  }
-
-  if (currentScreen === 'settings') {
-    return (
-      <SettingsScreen
-        userProfile={sync.userProfile}
-        onLogout={() => {
-          sync.logout();
-          setCurrentScreen('home');
-        }}
-        onBack={() => setCurrentScreen('dashboard')}
-      />
-    );
-  }
-
-  // Handle edit problem screen
+  // Handle edit problem screen (full screen, no tabs)
   if (editingProblem) {
     return (
       <EditProblemScreen
@@ -2380,14 +2522,80 @@ export default function App() {
     );
   }
 
-  // Default: HomeScreen with auth support
+  // Render screen based on currentScreen state
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'home':
+        return (
+          <HomeScreen
+            userData={userData}
+            userProfile={sync.userProfile}
+            onSelectLesson={(lesson) => setActiveLesson(lesson)}
+            onNavigateToDashboard={() => setCurrentScreen('dashboard')}
+          />
+        );
+      case 'interview':
+        return <InterviewScreen />;
+      case 'practice':
+        return <PracticeProblemsScreen userProfile={sync.userProfile} />;
+      case 'portfolio':
+        return <PortfolioBuilderScreen />;
+      case 'spacedRepetition':
+        return <SpacedRepetitionScreen />;
+      case 'codeReview':
+        return <CodeReviewScreen />;
+      case 'cloudSync':
+        return <CloudSyncScreen />;
+      case 'dashboard':
+        return (
+          <DashboardScreen
+            userProfile={sync.userProfile}
+            onNavigate={(screen, data) => {
+              if (screen === 'settings') setCurrentScreen('settings');
+              if (screen === 'editProblem') setEditingProblem(data);
+            }}
+          />
+        );
+      case 'settings':
+        return (
+          <SettingsScreen
+            userProfile={sync.userProfile}
+            onLogout={() => {
+              sync.logout();
+              setCurrentScreen('home');
+            }}
+            onBack={() => setCurrentScreen('dashboard')}
+          />
+        );
+      default:
+        return (
+          <HomeScreen
+            userData={userData}
+            userProfile={sync.userProfile}
+            onSelectLesson={(lesson) => setActiveLesson(lesson)}
+            onNavigateToDashboard={() => setCurrentScreen('dashboard')}
+          />
+        );
+    }
+  };
+
+  // Main authenticated UI with persistent tab bar
   return (
-    <HomeScreen
-      userData={userData}
-      userProfile={sync.userProfile}
-      onSelectLesson={(lesson) => setActiveLesson(lesson)}
-      onNavigateToDashboard={() => setCurrentScreen('dashboard')}
-    />
+    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      {/* Scrollable screen area */}
+      <View style={{ flex: 1 }}>
+        {renderScreen()}
+      </View>
+      {/* Persistent bottom tab bar */}
+      <BottomTabBar
+        currentScreen={currentScreen}
+        onChangeScreen={(screen) => setCurrentScreen(screen)}
+      />
+      {/* SafeArea bottom inset for notched devices */}
+      {IS_IOS && (
+        <View style={{ backgroundColor: COLORS.surface, height: 20 }} />
+      )}
+    </View>
   );
 }
 // ============================================================================
