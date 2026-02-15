@@ -12,6 +12,8 @@ import { WebView } from 'react-native-webview';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import InterviewScreen from './src/screens/InterviewScreen';
 import PracticeProblemsScreen from './src/screens/PracticeProblemsScreen';
+import PortfolioBuilderScreen from './src/screens/PortfolioBuilderScreen';
+import SpacedRepetitionScreen from './src/screens/SpacedRepetitionScreen';
 
 
 const { width } = Dimensions.get('window');
@@ -1915,7 +1917,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
   const [showReview, setShowReview] = useState(false);
   const [reviewCards, setReviewCards] = useState([]);
   const [loadingReview, setLoadingReview] = useState(false);
-  const [activeTab, setActiveTab] = useState('home'); // home, challenges, achievements, interview, practice
+  const [activeTab, setActiveTab] = useState('home'); // home, challenges, achievements, interview, practice, portfolio, spaced
 
   const allLessons = Object.values(CURRICULUM).flatMap(track => track.lessons);
   const recommendations = AdaptiveLearningEngine.getRecommendations(userData, CURRICULUM);
@@ -2231,16 +2233,24 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
         {activeTab === 'achievements' && renderAchievementsTab()}
         {activeTab === 'interview' && <InterviewScreen />}
         {activeTab === 'practice' && <PracticeProblemsScreen />}
+        {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
+        {activeTab === 'spaced' && <SpacedRepetitionScreen />}
 
         {/* Bottom Tab Bar */}
-        <View style={{
-          flexDirection: 'row', borderTopWidth: 1, borderTopColor: COLORS.border,
-          backgroundColor: COLORS.bg, paddingBottom: IS_IOS ? 20 : 8, paddingTop: 8,
-        }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{
+            borderTopWidth: 1, borderTopColor: COLORS.border,
+            backgroundColor: COLORS.bg, paddingBottom: IS_IOS ? 20 : 8, paddingTop: 8,
+          }}
+        >
           {[
             { id: 'home', label: 'Home', emoji: '🏠' },
             { id: 'interview', label: 'Interview', emoji: '🎤' },
             { id: 'practice', label: 'Practice', emoji: '💪' },
+            { id: 'portfolio', label: 'Portfolio', emoji: '🎨' },
+            { id: 'spaced', label: 'Spaced', emoji: '🧠' },
             { id: 'challenges', label: 'Challenges', emoji: '🏆' },
             { id: 'achievements', label: 'Badges', emoji: '🏅' },
           ].map(tab => (
@@ -2256,7 +2266,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
               }}>{tab.label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
         <StatusBar style="light" />
       </View>
