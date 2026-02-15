@@ -2296,7 +2296,6 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
 
         <StatusBar style="light" />
       </View>
-      </View>
     </SafeAreaView>
   );
 };
