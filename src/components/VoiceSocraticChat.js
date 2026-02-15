@@ -4,6 +4,8 @@ import {
 } from 'react-native';
 import useVoiceInput from '../hooks/useVoiceInput';
 import useVoiceOutput from '../hooks/useVoiceOutput';
+import useLiveInterviewFeedback from '../hooks/useLiveInterviewFeedback';
+import LiveInterviewFeedback from './LiveInterviewFeedback';
 
 const COLORS = {
   bg: '#09090B',
@@ -20,6 +22,7 @@ const COLORS = {
 export default function VoiceSocraticChat({ question, onAnswer, loading, score }) {
   const voiceInput = useVoiceInput();
   const voiceOutput = useVoiceOutput();
+  const liveInterviewFeedback = useLiveInterviewFeedback();
   const [transientText, setTransientText] = useState('');
   const [pulseAnim] = useState(new Animated.Value(1));
 
@@ -33,7 +36,16 @@ export default function VoiceSocraticChat({ question, onAnswer, loading, score }
   // Update transient text while listening
   useEffect(() => {
     setTransientText(voiceInput.transcript);
-  }, [voiceInput.transcript]);
+    // Trigger live feedback analysis
+    if (voiceInput.transcript && question) {
+      const expectedTopics = question.expectedTopics || [];
+      liveInterviewFeedback.analyzeLiveTranscript(
+        voiceInput.transcript,
+        question.question || question,
+        expectedTopics
+      );
+    }
+  }, [voiceInput.transcript, question]);
 
   // Pulse animation for listening indicator
   useEffect(() => {
@@ -92,7 +104,18 @@ export default function VoiceSocraticChat({ question, onAnswer, loading, score }
         {question && (
           <View style={styles.questionCard}>
             <Text style={styles.questionLabel}>Interviewer Question</Text>
-            <Text style={styles.questionText}>{question}</Text>
+            <Text style={styles.questionText}>{typeof question === 'string' ? question : question.question}</Text>
+          </View>
+        )}
+
+        {/* Live Interview Feedback */}
+        {transientText && (
+          <View style={styles.feedbackSection}>
+            <LiveInterviewFeedback
+              feedback={liveInterviewFeedback.feedback}
+              loading={liveInterviewFeedback.loading}
+              isListening={voiceInput.isListening}
+            />
           </View>
         )}
 
@@ -197,6 +220,9 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 16,
     lineHeight: 24,
+  },
+  feedbackSection: {
+    marginBottom: 16,
   },
   transcriptCard: {
     backgroundColor: COLORS.surfaceLight,
