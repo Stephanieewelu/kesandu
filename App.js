@@ -14,6 +14,8 @@ import InterviewScreen from './src/screens/InterviewScreen';
 import PracticeProblemsScreen from './src/screens/PracticeProblemsScreen';
 import PortfolioBuilderScreen from './src/screens/PortfolioBuilderScreen';
 import SpacedRepetitionScreen from './src/screens/SpacedRepetitionScreen';
+import CloudSyncScreen from './src/screens/CloudSyncScreen';
+import CodeReviewScreen from './src/screens/CodeReviewScreen';
 
 
 const { width } = Dimensions.get('window');
@@ -1917,7 +1919,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
   const [showReview, setShowReview] = useState(false);
   const [reviewCards, setReviewCards] = useState([]);
   const [loadingReview, setLoadingReview] = useState(false);
-  const [activeTab, setActiveTab] = useState('home'); // home, challenges, achievements, interview, practice, portfolio, spaced
+  const [activeTab, setActiveTab] = useState('home'); // home, interview, practice, portfolio, spaced, code, sync, challenges, achievements
 
   const allLessons = Object.values(CURRICULUM).flatMap(track => track.lessons);
   const recommendations = AdaptiveLearningEngine.getRecommendations(userData, CURRICULUM);
@@ -2235,6 +2237,8 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
         {activeTab === 'practice' && <PracticeProblemsScreen />}
         {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
         {activeTab === 'spaced' && <SpacedRepetitionScreen />}
+        {activeTab === 'code' && <CodeReviewScreen />}
+        {activeTab === 'sync' && <CloudSyncScreen />}
 
         {/* Bottom Tab Bar */}
         <ScrollView
@@ -2251,6 +2255,8 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
             { id: 'practice', label: 'Practice', emoji: '💪' },
             { id: 'portfolio', label: 'Portfolio', emoji: '🎨' },
             { id: 'spaced', label: 'Spaced', emoji: '🧠' },
+            { id: 'code', label: 'Code', emoji: '🔍' },
+            { id: 'sync', label: 'Cloud', emoji: '☁️' },
             { id: 'challenges', label: 'Challenges', emoji: '🏆' },
             { id: 'achievements', label: 'Badges', emoji: '🏅' },
           ].map(tab => (
