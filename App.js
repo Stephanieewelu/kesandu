@@ -2206,12 +2206,14 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={{ flex: 1, alignSelf: 'center', width: IS_WEB ? Math.min(800, width) : '100%' }}>
-        {/* Achievement Toast */}
-        {userData.newAchievement && (
-          <AchievementToast
-            achievement={userData.newAchievement}
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
+      <View style={{ flex: 1, flexDirection: 'column' }}>
+        {/* Main Content */}
+        <View style={{ flex: 1, alignSelf: 'center', width: IS_WEB ? Math.min(800, width) : '100%' }}>
+          {/* Achievement Toast */}
+          {userData.newAchievement && (
+            <AchievementToast
+              achievement={userData.newAchievement}
             onDismiss={() => userData.setNewAchievement(null)}
           />
         )}
@@ -2240,16 +2242,17 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
         </View>
       </View>
 
-        {/* Tab Content */}
-        {activeTab === 'home' && renderHomeTab()}
-        {activeTab === 'challenges' && renderChallengesTab()}
-        {activeTab === 'achievements' && renderAchievementsTab()}
-        {activeTab === 'interview' && <InterviewScreen />}
-        {activeTab === 'practice' && <PracticeProblemsScreen userProfile={userProfile} />}
-        {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
-        {activeTab === 'spaced' && <SpacedRepetitionScreen />}
-        {activeTab === 'code' && <CodeReviewScreen />}
-        {activeTab === 'sync' && <CloudSyncScreen />}
+          {/* Tab Content */}
+          {activeTab === 'home' && renderHomeTab()}
+          {activeTab === 'challenges' && renderChallengesTab()}
+          {activeTab === 'achievements' && renderAchievementsTab()}
+          {activeTab === 'interview' && <InterviewScreen />}
+          {activeTab === 'practice' && <PracticeProblemsScreen userProfile={userProfile} />}
+          {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
+          {activeTab === 'spaced' && <SpacedRepetitionScreen />}
+          {activeTab === 'code' && <CodeReviewScreen />}
+          {activeTab === 'sync' && <CloudSyncScreen />}
+        </View>
 
         {/* Bottom Tab Bar */}
         <ScrollView
@@ -2292,6 +2295,7 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
         </ScrollView>
 
         <StatusBar style="light" />
+      </View>
       </View>
     </SafeAreaView>
   );
