@@ -2266,19 +2266,26 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
             { id: 'practice', label: 'Practice' },
             { id: 'portfolio', label: 'Portfolio' },
             { id: 'spaced', label: 'Review' },
-            { id: 'code', label: 'Code Review' },
+            { id: 'code', label: 'Code' },
             { id: 'sync', label: 'Sync' },
             { id: 'challenges', label: 'Challenges' },
             { id: 'achievements', label: 'Badges' },
           ].map(tab => (
             <TouchableOpacity
               key={tab.id}
-              style={{ flex: 1, alignItems: 'center', gap: 2 }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                alignItems: 'center',
+                borderRadius: 8,
+                backgroundColor: activeTab === tab.id ? COLORS.surfaceLight : 'transparent',
+              }}
               onPress={() => setActiveTab(tab.id)}
             >
               <Text style={{
-                fontSize: 11, fontWeight: '600',
-                color: activeTab === tab.id ? COLORS.text : COLORS.textMuted,
+                fontSize: 12,
+                fontWeight: '600',
+                color: activeTab === tab.id ? COLORS.accent : COLORS.textMuted,
               }}>{tab.label}</Text>
             </TouchableOpacity>
           ))}

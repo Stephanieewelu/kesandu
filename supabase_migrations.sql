@@ -1,6 +1,60 @@
 -- Kesandu Database Schema
 -- Run these migrations in your Supabase SQL editor
 
+-- Users table (public profiles)
+CREATE TABLE IF NOT EXISTS public.users (
+  id uuid NOT NULL,
+  email text NOT NULL,
+  name text NOT NULL,
+  tier text DEFAULT 'free',
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT users_email_unique UNIQUE (email)
+);
+
+-- Create index for email lookups
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+
+-- Enable RLS for users table
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for users table
+CREATE POLICY "Users can view own profile" ON public.users
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.users
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can delete own profile" ON public.users
+  FOR DELETE USING (auth.uid() = id);
+
+-- Allow service role to insert (for triggers and functions)
+CREATE POLICY "Service role can insert users" ON public.users
+  FOR INSERT WITH CHECK (true);
+
+-- Function to handle new user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, email, name, tier)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    'free'
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to automatically create user profile on signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Interviews table
 CREATE TABLE IF NOT EXISTS public.interviews (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -23,14 +77,20 @@ CREATE TABLE IF NOT EXISTS public.interviews (
 CREATE TABLE IF NOT EXISTS public.practice_problems (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  problem_id text NOT NULL,
+  problem_id text,
   title text NOT NULL,
-  problem_type text NOT NULL,
+  description text NOT NULL,
   difficulty text NOT NULL,
-  role text NOT NULL,
-  solution text NOT NULL,
+  problem_type text,
+  role text,
+  constraints text,
+  examples text,
+  tags text[] DEFAULT '{}',
+  solution text,
   evaluation jsonb,
-  submitted_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  submitted_at timestamp with time zone,
   CONSTRAINT practice_problems_pkey PRIMARY KEY (id),
   CONSTRAINT practice_problems_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
