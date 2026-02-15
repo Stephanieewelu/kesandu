@@ -49,9 +49,10 @@ Configure these variables in your Vercel project settings:
 - **.vercelignore:** Files to exclude from the build
 
 ### Caching Strategy
-- Static assets (images, fonts) in `/assets/`: 1 year cache (immutable)
-- Build artifacts in `/_next/static/`: 1 year cache (immutable)
-- HTML pages and dynamic content: 1 hour cache
+- HTML entry point (`index.html`): 1 hour cache (dynamic)
+- Build artifacts in `/_expo/static/js/web/`: 1 year cache (immutable - versioned filenames)
+- Static assets in `/assets/`: 1 year cache (immutable)
+- Fallback HTML for client-side routing: 1 hour cache
 
 ## After Deployment
 
