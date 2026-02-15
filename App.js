@@ -2261,24 +2261,33 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
           }}
         >
           {[
-            { id: 'home', label: 'Learn' },
-            { id: 'interview', label: 'Interview' },
-            { id: 'practice', label: 'Practice' },
-            { id: 'portfolio', label: 'Portfolio' },
-            { id: 'spaced', label: 'Review' },
-            { id: 'code', label: 'Code Review' },
-            { id: 'sync', label: 'Sync' },
-            { id: 'challenges', label: 'Challenges' },
-            { id: 'achievements', label: 'Badges' },
+            { id: 'home', label: 'Learn', icon: '🏠' },
+            { id: 'interview', label: 'Interview', icon: '🎤' },
+            { id: 'practice', label: 'Practice', icon: '💻' },
+            { id: 'portfolio', label: 'Portfolio', icon: '📁' },
+            { id: 'spaced', label: 'Review', icon: '🧠' },
+            { id: 'code', label: 'Code', icon: '📝' },
+            { id: 'sync', label: 'Sync', icon: '☁️' },
+            { id: 'challenges', label: 'Challenges', icon: '🎯' },
+            { id: 'achievements', label: 'Badges', icon: '🏆' },
           ].map(tab => (
             <TouchableOpacity
               key={tab.id}
-              style={{ flex: 1, alignItems: 'center', gap: 2 }}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                alignItems: 'center',
+                gap: 4,
+                borderRadius: 8,
+                backgroundColor: activeTab === tab.id ? COLORS.surfaceLight : 'transparent',
+              }}
               onPress={() => setActiveTab(tab.id)}
             >
+              <Text style={{ fontSize: 18 }}>{tab.icon}</Text>
               <Text style={{
-                fontSize: 11, fontWeight: '600',
-                color: activeTab === tab.id ? COLORS.text : COLORS.textMuted,
+                fontSize: 10,
+                fontWeight: '600',
+                color: activeTab === tab.id ? COLORS.accent : COLORS.textMuted,
               }}>{tab.label}</Text>
             </TouchableOpacity>
           ))}
