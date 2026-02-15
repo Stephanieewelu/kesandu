@@ -8,6 +8,8 @@ const useVoiceInput = () => {
   const recognitionRef = useRef(null);
   const finalTranscriptRef = useRef('');
   const lastResultIndexRef = useRef(0);
+  const shouldBeListeningRef = useRef(false); // Track if user wants to keep listening
+  const silenceTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -54,7 +56,17 @@ const useVoiceInput = () => {
         };
 
         recognitionRef.current.onend = () => {
-          setIsListening(false);
+          // If user wants to keep listening, restart automatically
+          if (shouldBeListeningRef.current) {
+            console.log('Recognition ended but user still speaking, restarting...');
+            try {
+              recognitionRef.current.start();
+            } catch (e) {
+              console.error('Error restarting recognition:', e);
+            }
+          } else {
+            setIsListening(false);
+          }
         };
       }
     }
@@ -65,13 +77,31 @@ const useVoiceInput = () => {
       setTranscript('');
       finalTranscriptRef.current = '';
       lastResultIndexRef.current = 0;
-      recognitionRef.current.start();
+      shouldBeListeningRef.current = true;
+      setIsListening(true);
+
+      try {
+        recognitionRef.current.start();
+      } catch (e) {
+        console.error('Error starting recognition:', e);
+      }
     }
   }, []);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      shouldBeListeningRef.current = false;
+      setIsListening(false);
+
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
+
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error('Error stopping recognition:', e);
+      }
     }
   }, []);
 
