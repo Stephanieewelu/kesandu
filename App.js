@@ -61,49 +61,22 @@ const TYPOGRAPHY = {
 // BOTTOM TAB BAR COMPONENT
 // ============================================
 const TAB_CONFIG = [
-  { key: 'home',              label: 'Home',        icon: 'Home'           },
-  { key: 'interview',         label: 'Interview',   icon: 'MessageSquare'  },
-  { key: 'practice',          label: 'Practice',    icon: 'Code'           },
-  { key: 'portfolio',         label: 'Portfolio',   icon: 'Briefcase'      },
-  { key: 'spacedRepetition',  label: 'Review',      icon: 'Brain'          },
-  { key: 'codeReview',        label: 'Code Rev',    icon: 'GitPullRequest' },
-  { key: 'cloudSync',         label: 'Sync',        icon: 'Cloud'          },
-  { key: 'dashboard',         label: 'Dashboard',   icon: 'LayoutDashboard'},
+  { key: 'home',              label: 'Home',      emoji: '🏠' },
+  { key: 'dashboard',         label: 'Dashboard', emoji: '📊' },
+  { key: 'interview',         label: 'Interview', emoji: '🎯' },
+  { key: 'practice',          label: 'Practice',  emoji: '💻' },
+  { key: 'portfolio',         label: 'Portfolio', emoji: '📁' },
+  { key: 'spacedRepetition',  label: 'Review',    emoji: '🧠' },
+  { key: 'codeReview',        label: 'Code Rev',  emoji: '🔍' },
+  { key: 'cloudSync',         label: 'Sync',      emoji: '☁️'  },
 ];
 
-const ICON_MAP = {
-  Home: HomeIcon,
-  MessageSquare,
-  Code,
-  Briefcase,
-  Brain,
-  GitPullRequest,
-  Cloud,
-  LayoutDashboard,
-};
-
 const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
-  const [scrollOffset, setScrollOffset] = React.useState(0);
-  const scrollViewRef = React.useRef(null);
-
   return (
     <View style={tabStyles.wrapper}>
-      {/* Gradient fade hint on left */}
-      {scrollOffset > 5 && (
-        <View style={tabStyles.fadeLeft} pointerEvents="none" />
-      )}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={tabStyles.container}
-        onScroll={(e) => setScrollOffset(e.nativeEvent.contentOffset.x)}
-        scrollEventThrottle={16}
-        style={tabStyles.scrollView}
-      >
+      <View style={tabStyles.container}>
         {TAB_CONFIG.map((tab) => {
           const isActive = currentScreen === tab.key;
-          const IconComponent = ICON_MAP[tab.icon];
           return (
             <TouchableOpacity
               key={tab.key}
@@ -116,13 +89,7 @@ const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`Navigate to ${tab.label}`}
             >
-              {IconComponent && (
-                <IconComponent
-                  size={20}
-                  color={isActive ? COLORS.accent : COLORS.textSecondary}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                />
-              )}
+              <Text style={{ fontSize: 18, marginBottom: 2 }}>{tab.emoji}</Text>
               <Text
                 style={[
                   tabStyles.label,
@@ -132,52 +99,42 @@ const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
               >
                 {tab.label}
               </Text>
-              {isActive && <View style={tabStyles.indicator} />}
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
-      {/* Gradient fade hint on right */}
-      <View style={tabStyles.fadeRight} pointerEvents="none" />
+      </View>
     </View>
   );
 };
 
 const tabStyles = StyleSheet.create({
   wrapper: {
-    position: 'relative',
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     zIndex: 100,
-  },
-  scrollView: {
-    flexGrow: 0,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'web' ? 12 : 20,
+    width: '100%',
   },
   container: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 6,
-    justifyContent: 'center',
-    minWidth: '100%',
   },
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginHorizontal: 2,
-    borderRadius: 12,
-    minWidth: 64,
-    position: 'relative',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    flex: 1,
   },
   tabActive: {
-    backgroundColor: `${COLORS.accent}15`,
+    backgroundColor: `${COLORS.accent}25`,
   },
   label: {
     fontSize: 10,
-    marginTop: 4,
     color: COLORS.textSecondary,
     fontWeight: '500',
     textAlign: 'center',
@@ -185,32 +142,6 @@ const tabStyles = StyleSheet.create({
   labelActive: {
     color: COLORS.accent,
     fontWeight: '700',
-  },
-  indicator: {
-    position: 'absolute',
-    bottom: 2,
-    width: 20,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: COLORS.accent,
-  },
-  fadeLeft: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 24,
-    zIndex: 10,
-    backgroundColor: 'transparent',
-  },
-  fadeRight: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: 24,
-    zIndex: 10,
-    backgroundColor: 'transparent',
   },
 });
 
