@@ -62,7 +62,7 @@ export default function InterviewScreen() {
         <View style={styles.container}>
           <ScrollView contentContainerStyle={styles.selectorScroll} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
-              <Text style={styles.title}>Mic Interview Simulation</Text>
+              <Text style={styles.title}>🎤 Interview Simulation</Text>
               <Text style={styles.subtitle}>Choose your interview track</Text>
             </View>
 
@@ -112,7 +112,7 @@ export default function InterviewScreen() {
 
           <View style={styles.footer}>
             <TouchableOpacity style={styles.startButton} onPress={handleStartInterview}>
-              <Text style={styles.startButtonText}>Launch Start Interview</Text>
+              <Text style={styles.startButtonText}>🚀 Start Interview</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -180,7 +180,7 @@ export default function InterviewScreen() {
 
           {/* Strengths */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Check Strengths</Text>
+            <Text style={styles.sectionTitle}>✅ Strengths</Text>
             {report.strengths.map((strength, idx) => (
               <View key={idx} style={styles.listItem}>
                 <Text style={styles.bullet}>•</Text>
@@ -191,7 +191,7 @@ export default function InterviewScreen() {
 
           {/* Improvements */}
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>Warning Areas to Improve</Text>
+            <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>⚠️ Areas to Improve</Text>
             {report.improvements.map((improvement, idx) => (
               <View key={idx} style={styles.listItem}>
                 <Text style={styles.bullet}>•</Text>
@@ -202,7 +202,7 @@ export default function InterviewScreen() {
 
           {/* Next Steps */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Library Recommended Topics</Text>
+            <Text style={styles.sectionTitle}>📚 Recommended Topics</Text>
             {report.nextSteps.map((topic, idx) => (
               <View key={idx} style={styles.topicCard}>
                 <Text style={styles.topicText}>{topic}</Text>
@@ -213,7 +213,7 @@ export default function InterviewScreen() {
 
         <View style={styles.reportFooter}>
           <TouchableOpacity style={styles.newInterviewButton} onPress={handleExitInterview}>
-            <Text style={styles.newInterviewText}>New Interview</Text>
+            <Text style={styles.newInterviewText}>🔄 New Interview</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

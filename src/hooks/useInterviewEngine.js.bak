@@ -30,7 +30,7 @@ const INTERVIEWER_STYLES = {
 
 const ROLES = {
   DATA_ENGINEER: {
-    name: 'Data Engineer Tool',
+    name: 'Data Engineer 🔧',
     description: 'SQL, pipelines, architecture, distributed systems',
     topics: ['SQL Mastery', 'Pipeline Design', 'System Design', 'Data Modeling', 'Query Optimization'],
   },
@@ -40,17 +40,17 @@ const ROLES = {
     topics: ['ML Fundamentals', 'LLM & Generative AI', 'MLOps', 'Model Deployment', 'Coding'],
   },
   DATA_SCIENTIST: {
-    name: 'Data Scientist',
+    name: 'Data Scientist 📊',
     description: 'Statistics, A/B testing, modeling, case studies',
     topics: ['Statistics & Probability', 'A/B Testing', 'ML Modeling', 'Case Studies', 'Communication'],
   },
   FDE: {
-    name: 'Forward Deployed Engineer',
+    name: 'Forward Deployed Engineer 🚀',
     description: 'Client scenarios, rapid prototyping, full-stack',
     topics: ['Client Scenarios', 'Rapid Prototyping', 'Full-Stack Data', 'Soft Skills'],
   },
   DATA_ANALYST: {
-    name: 'Data Analyst',
+    name: 'Data Analyst 📈',
     description: 'SQL, analytics, metrics, visualization',
     topics: ['SQL Analytics', 'Business Cases', 'Visualization', 'Statistics'],
   },

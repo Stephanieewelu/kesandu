@@ -86,13 +86,13 @@ export default function PortfolioBuilderScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>Target</Text>
+          <Text style={styles.emptyIcon}>🎯</Text>
           <Text style={styles.emptyTitle}>Your Portfolio is Empty</Text>
           <Text style={styles.emptyText}>
             Solve practice problems and add your best solutions to build your portfolio.
           </Text>
           <View style={styles.emptyHint}>
-            <Text style={styles.hintText}>Tip: After solving a problem with 70%+, you can add it to your portfolio!</Text>
+            <Text style={styles.hintText}>💡 After solving a problem with 70%+, you can add it to your portfolio!</Text>
           </View>
         </View>
       </SafeAreaView>
@@ -104,7 +104,7 @@ export default function PortfolioBuilderScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Your Portfolio</Text>
+          <Text style={styles.title}>🎨 Your Portfolio</Text>
           <Text style={styles.subtitle}>Showcase your best work</Text>
         </View>
 
@@ -112,10 +112,10 @@ export default function PortfolioBuilderScreen() {
         {showStats && (
           <View style={styles.statsContainer}>
             <View style={styles.statGrid}>
-              <StatItem icon="package" label="Items" value={stats.totalItems} />
-              <StatItem icon="growth" label="Avg Score" value={`${stats.averageScore}%`} />
-              <StatItem icon="star" label="Best" value={`${stats.bestScore}%`} />
-              <StatItem icon="globe" label="Public" value={stats.publicCount} />
+              <StatItem icon="📦" label="Items" value={stats.totalItems} />
+              <StatItem icon="📈" label="Avg Score" value={`${stats.averageScore}%`} />
+              <StatItem icon="⭐" label="Best" value={`${stats.bestScore}%`} />
+              <StatItem icon="🌐" label="Public" value={stats.publicCount} />
             </View>
           </View>
         )}
@@ -155,7 +155,7 @@ export default function PortfolioBuilderScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Notes Notes</Text>
+              <Text style={styles.modalTitle}>📝 Notes</Text>
               <TouchableOpacity onPress={() => setNotesModalVisible(false)}>
                 <Text style={styles.closeIcon}>×</Text>
               </TouchableOpacity>
@@ -172,7 +172,7 @@ export default function PortfolioBuilderScreen() {
             />
 
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveNotes}>
-              <Text style={styles.saveButtonText}>Save Notes</Text>
+              <Text style={styles.saveButtonText}>💾 Save Notes</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -220,7 +220,7 @@ function PortfolioItemCard({
       {/* Notes Preview */}
       {item.notes && (
         <View style={styles.notesPreview}>
-          <Text style={styles.notesLabel}>Notes Notes</Text>
+          <Text style={styles.notesLabel}>📝 Notes</Text>
           <Text style={styles.notesPreviewText} numberOfLines={2}>
             {item.notes}
           </Text>
@@ -230,13 +230,13 @@ function PortfolioItemCard({
       {/* Evaluation Summary */}
       <View style={styles.evaluationSummary}>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Check Strengths</Text>
+          <Text style={styles.summaryLabel}>✅ Strengths</Text>
           <Text style={styles.summaryValue} numberOfLines={1}>
             {item.evaluation.strengths?.[0] || 'N/A'}
           </Text>
         </View>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Growth Focus</Text>
+          <Text style={styles.summaryLabel}>📈 Focus</Text>
           <Text style={styles.summaryValue} numberOfLines={1}>
             {item.evaluation.improvements?.[0] || 'N/A'}
           </Text>
@@ -246,20 +246,20 @@ function PortfolioItemCard({
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <ActionButton
-          icon="Notes"
+          icon="📝"
           label="Notes"
           onPress={onAddNotes}
           style={{ flex: 1 }}
         />
         <ActionButton
-          icon="link"
+          icon="🔗"
           label={item.isPublic ? 'Public' : 'Share'}
           onPress={item.isPublic ? onShare : onMakePublic}
           style={{ flex: 1 }}
           secondary={item.isPublic}
         />
         <ActionButton
-          icon="trash"
+          icon="🗑️"
           label="Delete"
           onPress={onDelete}
           style={{ flex: 1 }}

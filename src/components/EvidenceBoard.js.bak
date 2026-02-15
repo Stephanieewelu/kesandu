@@ -12,7 +12,7 @@ const EvidenceBoard = ({ scenario, onSubmitHypothesis }) => {
 
   return (
     <View style={styles.evidenceBoard}>
-      <Text style={styles.evidenceBoardTitle}>Evidence Board</Text>
+      <Text style={styles.evidenceBoardTitle}>🔍 Evidence Board</Text>
       <View style={styles.clueGrid}>
         {scenario.clues.map(clue => (
           <TouchableOpacity
