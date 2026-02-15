@@ -17,8 +17,6 @@ __tests__
 .playwright
 
 # Build artifacts
-web-build
-dist
 *.log
 
 # IDE
