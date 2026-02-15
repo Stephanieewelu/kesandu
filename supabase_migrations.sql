@@ -1,6 +1,35 @@
 -- Kesandu Database Schema
 -- Run these migrations in your Supabase SQL editor
 
+-- Users table (public profiles)
+CREATE TABLE IF NOT EXISTS public.users (
+  id uuid NOT NULL,
+  email text NOT NULL,
+  name text NOT NULL,
+  tier text DEFAULT 'free',
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT users_email_unique UNIQUE (email)
+);
+
+-- Create index for email lookups
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+
+-- Enable RLS for users table
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for users table
+CREATE POLICY "Users can view own profile" ON public.users
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON public.users
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.users
+  FOR UPDATE USING (auth.uid() = id);
+
 -- Interviews table
 CREATE TABLE IF NOT EXISTS public.interviews (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -23,14 +52,20 @@ CREATE TABLE IF NOT EXISTS public.interviews (
 CREATE TABLE IF NOT EXISTS public.practice_problems (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  problem_id text NOT NULL,
+  problem_id text,
   title text NOT NULL,
-  problem_type text NOT NULL,
+  description text NOT NULL,
   difficulty text NOT NULL,
-  role text NOT NULL,
-  solution text NOT NULL,
+  problem_type text,
+  role text,
+  constraints text,
+  examples text,
+  tags text[] DEFAULT '{}',
+  solution text,
   evaluation jsonb,
-  submitted_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  submitted_at timestamp with time zone,
   CONSTRAINT practice_problems_pkey PRIMARY KEY (id),
   CONSTRAINT practice_problems_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 );
