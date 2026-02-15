@@ -13,34 +13,73 @@ export default function useMobileSync() {
 
   // Check auth status on mount
   useEffect(() => {
-    checkAuthStatus();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        setIsAuthenticated(true);
-        loadUserProfile(session.user);
-      } else {
-        setIsAuthenticated(false);
-        setUserProfile(null);
+    // Initialize auth state from Supabase
+    let isMounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // First try to restore session from localStorage
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (isMounted) {
+          if (error) {
+            console.warn('Session restore warning:', error.message);
+            setIsAuthenticated(false);
+            setLoading(false);
+          } else if (session?.user) {
+            setIsAuthenticated(true);
+            await loadUserProfile(session.user);
+            setLoading(false);
+          } else {
+            setIsAuthenticated(false);
+            setLoading(false);
+          }
+        }
+      } catch (e) {
+        console.error('Auth initialization error:', e);
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
       }
-      setLoading(false);
+    };
+
+    // Start initialization
+    initializeAuth();
+
+    // Also subscribe to auth changes for real-time updates
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isMounted) {
+        if (session?.user) {
+          setIsAuthenticated(true);
+          loadUserProfile(session.user);
+        } else {
+          setIsAuthenticated(false);
+          setUserProfile(null);
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+
       if (session?.user) {
         setIsAuthenticated(true);
-        loadUserProfile(session.user);
+        await loadUserProfile(session.user);
       } else {
         setIsAuthenticated(false);
       }
     } catch (e) {
       console.error('Auth check error:', e);
-    } finally {
-      setLoading(false);
+      setIsAuthenticated(false);
     }
   };
 
