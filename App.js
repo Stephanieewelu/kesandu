@@ -16,6 +16,9 @@ import PortfolioBuilderScreen from './src/screens/PortfolioBuilderScreen';
 import SpacedRepetitionScreen from './src/screens/SpacedRepetitionScreen';
 import CloudSyncScreen from './src/screens/CloudSyncScreen';
 import CodeReviewScreen from './src/screens/CodeReviewScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import EditProblemScreen from './src/screens/EditProblemScreen';
+import useMobileSync from './src/hooks/useMobileSyncSupabase';
 
 
 const { width } = Dimensions.get('window');
@@ -1913,7 +1916,7 @@ const LessonCard = ({ lesson, isCompleted, depthLevel, onPress, onWatchVideo }) 
 // ============================================================================
 // HOME SCREEN - UPDATED WITH ALL FEATURES
 // ============================================================================
-const HomeScreen = ({ userData, onSelectLesson }) => {
+const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboard }) => {
   const [activeVideoId, setActiveVideoId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showReview, setShowReview] = useState(false);
@@ -2224,8 +2227,16 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
           <Text style={styles.homeTitle}>Kesandu</Text>
           <Text style={styles.homeSubtitle}>Birth of a Guru</Text>
         </View>
-        <View style={styles.xpBadge}>
-          <Text style={styles.xpText}>{userData.totalXP || 0} XP</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.xpBadge}
+            onPress={() => onNavigateToDashboard?.()}
+          >
+            <Text style={styles.xpText}>📊</Text>
+          </TouchableOpacity>
+          <View style={styles.xpBadge}>
+            <Text style={styles.xpText}>{userData.totalXP || 0} XP</Text>
+          </View>
         </View>
       </View>
 
@@ -2234,7 +2245,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
         {activeTab === 'challenges' && renderChallengesTab()}
         {activeTab === 'achievements' && renderAchievementsTab()}
         {activeTab === 'interview' && <InterviewScreen />}
-        {activeTab === 'practice' && <PracticeProblemsScreen />}
+        {activeTab === 'practice' && <PracticeProblemsScreen userProfile={userProfile} />}
         {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
         {activeTab === 'spaced' && <SpacedRepetitionScreen />}
         {activeTab === 'code' && <CodeReviewScreen />}
@@ -2282,10 +2293,14 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
 // MAIN APP
 // ============================================================================
 export default function App() {
+  const sync = useMobileSync();
   const userData = useUserData();
   const [activeLesson, setActiveLesson] = useState(null);
+  const [currentScreen, setCurrentScreen] = useState('home'); // home, settings
+  const [editingProblem, setEditingProblem] = useState(null);
 
-  if (!userData.loaded) {
+  // Show loading while checking auth
+  if (sync.loading || !userData.loaded) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -2296,6 +2311,12 @@ export default function App() {
     );
   }
 
+  // Show CloudSync (login/signup) if not authenticated
+  if (!sync.isAuthenticated) {
+    return <CloudSyncScreen />;
+  }
+
+  // Handle lesson dialog
   if (activeLesson) {
     return (
       <Dialogue
@@ -2306,10 +2327,56 @@ export default function App() {
     );
   }
 
+  // Handle different screens
+  if (currentScreen === 'dashboard') {
+    return (
+      <DashboardScreen
+        userProfile={sync.userProfile}
+        onNavigate={(screen, data) => {
+          if (screen === 'settings') setCurrentScreen('settings');
+          if (screen === 'editProblem') setEditingProblem(data);
+        }}
+      />
+    );
+  }
+
+  if (currentScreen === 'settings') {
+    return (
+      <SettingsScreen
+        userProfile={sync.userProfile}
+        onLogout={() => {
+          sync.logout();
+          setCurrentScreen('home');
+        }}
+        onBack={() => setCurrentScreen('dashboard')}
+      />
+    );
+  }
+
+  // Handle edit problem screen
+  if (editingProblem) {
+    return (
+      <EditProblemScreen
+        problem={editingProblem}
+        userProfile={sync.userProfile}
+        onSave={() => {
+          setEditingProblem(null);
+          setCurrentScreen('dashboard');
+        }}
+        onCancel={() => {
+          setEditingProblem(null);
+        }}
+      />
+    );
+  }
+
+  // Default: HomeScreen with auth support
   return (
     <HomeScreen
       userData={userData}
+      userProfile={sync.userProfile}
       onSelectLesson={(lesson) => setActiveLesson(lesson)}
+      onNavigateToDashboard={() => setCurrentScreen('dashboard')}
     />
   );
 }

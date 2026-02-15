@@ -8,7 +8,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = '@kesandu_guru_xp';
 const ONBOARDING_KEY = '@kesandu_onboarding_done';
 
-export default function SettingsScreen({ onClose, totalXP, level, streak = 0, achievements = 0, onOpenStreamlit }) {
+const COLORS = {
+  bg: '#09090B',
+  surface: '#18181B',
+  surfaceLight: '#27272A',
+  border: '#3F3F46',
+  text: '#FAFAFA',
+  textSecondary: '#A1A1AA',
+  textMuted: '#71717A',
+  accent: '#E4E4E7',
+  success: '#22C55E',
+  danger: '#EF4444',
+};
+
+export default function SettingsScreen({ onClose, onBack, userProfile, onLogout, totalXP = 0, level = 0, streak = 0, achievements = 0, onOpenStreamlit }) {
   const [resetting, setResetting] = useState(false);
 
   const handleResetProgress = () => {
@@ -54,21 +67,65 @@ export default function SettingsScreen({ onClose, totalXP, level, streak = 0, ac
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => {
+            onLogout?.();
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>SETTINGS</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: COLORS.bg }]}>
+      <View style={[styles.header, { borderBottomColor: COLORS.border }]}>
+        <View>
+          <Text style={[styles.headerTitle, { color: COLORS.text }]}>Settings</Text>
+          {userProfile && <Text style={[styles.headerSubtitle, { color: COLORS.textMuted }]}>{userProfile.email}</Text>}
+        </View>
         <TouchableOpacity
-          onPress={onClose}
+          onPress={onBack || onClose}
           accessibilityRole="button"
-          accessibilityLabel="Close settings"
+          accessibilityLabel="Go back"
         >
-          <Text style={styles.closeText}>Done</Text>
+          <Text style={[styles.closeText, { color: COLORS.accent }]}>← Back</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.statsCard}>
+        {/* User Profile Section */}
+        {userProfile && (
+          <View style={[styles.profileCard, { backgroundColor: COLORS.surface, borderColor: COLORS.border }]}>
+            <View style={styles.profileHeader}>
+              <View style={[styles.profileAvatar, { backgroundColor: COLORS.accent }]}>
+                <Text style={{ fontSize: 28, fontWeight: '700' }}>
+                  {(userProfile.name || 'U')[0].toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.profileName, { color: COLORS.text }]}>{userProfile.name}</Text>
+                <Text style={[styles.profileEmail, { color: COLORS.textMuted }]}>{userProfile.email}</Text>
+                {userProfile.tier && (
+                  <View style={[styles.tierBadge, { backgroundColor: COLORS.accent + '20' }]}>
+                    <Text style={[styles.tierText, { color: COLORS.accent }]}>
+                      {userProfile.tier.charAt(0).toUpperCase() + userProfile.tier.slice(1)} Tier
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+
+        <View style={[styles.statsCard, { backgroundColor: COLORS.surface, borderColor: COLORS.border }]}>
           <Text style={styles.statsTitle}>YOUR STATS</Text>
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -139,9 +196,24 @@ export default function SettingsScreen({ onClose, totalXP, level, streak = 0, ac
           <Text style={styles.menuValue}>React Native + Expo</Text>
         </View>
 
+        {/* Account Actions */}
+        <Text style={[styles.sectionTitle, { color: COLORS.accent, marginTop: 28 }]}>ACCOUNT</Text>
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.dangerItem, { backgroundColor: COLORS.danger + '20', borderColor: COLORS.danger + '40' }]}
+          onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel="Logout from account"
+        >
+          <Text style={[styles.menuText, styles.dangerText, { color: COLORS.danger }]}>
+            Logout
+          </Text>
+          <Text style={[styles.menuArrow, { color: COLORS.danger }]}>→</Text>
+        </TouchableOpacity>
+
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Kesandu Guru</Text>
-          <Text style={styles.footerSub}>AI Education Platform</Text>
+          <Text style={[styles.footerText, { color: COLORS.text }]}>Kesandu</Text>
+          <Text style={[styles.footerSub, { color: COLORS.textMuted }]}>AI Education Platform</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -151,7 +223,7 @@ export default function SettingsScreen({ onClose, totalXP, level, streak = 0, ac
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: COLORS.bg,
   },
   header: {
     flexDirection: 'row',
@@ -160,16 +232,16 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     borderBottomWidth: 1,
-    borderColor: '#222',
   },
   headerTitle: {
-    color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 14,
-    letterSpacing: 1,
+    fontSize: 24,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
   closeText: {
-    color: '#00D9FF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -177,91 +249,116 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 16,
+  },
+  profileCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  profileEmail: {
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  tierBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  tierText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   statsCard: {
-    backgroundColor: '#121212',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 28,
+    padding: 16,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#222',
   },
   statsTitle: {
-    color: '#666',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1,
-    marginBottom: 16,
+    marginBottom: 12,
+    color: COLORS.textMuted,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 20,
+    gap: 12,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
   statValue: {
-    color: '#FFD700',
-    fontSize: 32,
+    color: COLORS.accent,
+    fontSize: 28,
     fontWeight: '900',
   },
   statLabel: {
-    color: '#888',
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 4,
+    color: COLORS.textMuted,
   },
   sectionTitle: {
-    color: '#00D9FF',
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 11,
     letterSpacing: 1,
     marginBottom: 12,
     marginTop: 8,
+    textTransform: 'uppercase',
   },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#111',
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#222',
   },
   menuText: {
-    color: '#FFF',
     fontSize: 15,
   },
   menuArrow: {
-    color: '#666',
     fontSize: 16,
   },
   menuValue: {
-    color: '#888',
     fontSize: 14,
+    color: COLORS.textMuted,
   },
-  dangerItem: {
-    borderColor: 'rgba(255, 77, 77, 0.3)',
-  },
-  dangerText: {
-    color: '#FF4D4D',
-  },
+  dangerItem: {},
+  dangerText: {},
   footer: {
     alignItems: 'center',
     paddingTop: 40,
     paddingBottom: 20,
   },
   footerText: {
-    color: '#444',
     fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   footerSub: {
-    color: '#333',
     fontSize: 11,
     marginTop: 4,
   },

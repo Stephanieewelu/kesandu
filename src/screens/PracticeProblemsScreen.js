@@ -22,8 +22,8 @@ const COLORS = {
 
 const { width } = Dimensions.get('window');
 
-export default function PracticeProblemsScreen() {
-  const practice = usePracticeProblems();
+export default function PracticeProblemsScreen({ userProfile }) {
+  const practice = usePracticeProblems(userProfile?.userId);
   const [showRoleSelector, setShowRoleSelector] = useState(true);
   const [selectedRole, setSelectedRole] = useState('DATA_ENGINEER');
   const [selectedProblemType, setSelectedProblemType] = useState('SQL');

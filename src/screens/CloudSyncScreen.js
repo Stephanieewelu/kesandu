@@ -4,6 +4,7 @@ import {
   TextInput, Modal, Alert, ActivityIndicator
 } from 'react-native';
 import useMobileSync from '../hooks/useMobileSyncSupabase';
+import PasswordResetScreen from './PasswordResetScreen';
 
 
 const COLORS = {
@@ -24,6 +25,7 @@ const COLORS = {
 export default function CloudSyncScreen() {
   const sync = useMobileSync();
   const [showLoginModal, setShowLoginModal] = useState(!sync.isAuthenticated);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -88,6 +90,20 @@ export default function CloudSyncScreen() {
       ]
     );
   };
+
+  if (showPasswordReset) {
+    return (
+      <PasswordResetScreen
+        onBack={() => setShowPasswordReset(false)}
+        onSuccess={() => {
+          setShowPasswordReset(false);
+          setIsSignUp(false);
+          setPassword('');
+          Alert.alert('Success', 'Your password has been reset. You can now sign in with your new password.');
+        }}
+      />
+    );
+  }
 
   if (!sync.isAuthenticated) {
     return (
@@ -154,18 +170,28 @@ export default function CloudSyncScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              onPress={() => {
-                setIsSignUp(!isSignUp);
-                setEmail('');
-                setPassword('');
-                setName('');
-              }}
-            >
-              <Text style={styles.toggleAuthText}>
-                {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.footerLinks}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsSignUp(!isSignUp);
+                  setEmail('');
+                  setPassword('');
+                  setName('');
+                }}
+              >
+                <Text style={styles.toggleAuthText}>
+                  {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+                </Text>
+              </TouchableOpacity>
+
+              {!isSignUp && (
+                <TouchableOpacity onPress={() => setShowPasswordReset(true)}>
+                  <Text style={[styles.toggleAuthText, { color: COLORS.info, marginTop: 12 }]}>
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <View style={styles.benefitsCard}>
@@ -707,5 +733,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 16,
+  },
+  footerLinks: {
+    marginTop: 4,
   },
 });
