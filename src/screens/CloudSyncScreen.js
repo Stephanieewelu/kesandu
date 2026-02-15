@@ -366,7 +366,7 @@ export default function CloudSyncScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
