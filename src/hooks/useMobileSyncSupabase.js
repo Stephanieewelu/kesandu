@@ -79,43 +79,49 @@ export default function useMobileSync() {
   const registerUser = useCallback(async (email, password, name) => {
     try {
       setLoading(true);
+      setSyncError(null);
 
-      // Sign up with Supabase Auth
+      // Sign up with Supabase Auth - name will be stored in metadata
+      // The database trigger will automatically create the user profile
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            name: name || email.split('@')[0],
+          },
+        },
       });
 
       if (authError) throw authError;
 
-      // Create user profile
-      const { data, error: profileError } = await supabase
+      // Wait a moment for trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Load the auto-created profile
+      const { data: profileData, error: profileError } = await supabase
         .from(TABLES.USERS)
-        .insert([
-          {
-            id: authData.user.id,
-            email,
-            name,
-            tier: 'free',
-          },
-        ])
-        .select()
+        .select('*')
+        .eq('id', authData.user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.warn('Profile not found immediately, will be created by trigger');
+      }
 
       setIsAuthenticated(true);
       setUserProfile({
-        userId: data.id,
-        email: data.email,
-        name: data.name,
-        tier: data.tier,
-        createdAt: data.created_at,
+        userId: authData.user.id,
+        email: authData.user.email,
+        name: profileData?.name || name || email.split('@')[0],
+        tier: profileData?.tier || 'free',
+        createdAt: profileData?.created_at || new Date().toISOString(),
       });
 
-      return data;
+      return authData.user;
     } catch (e) {
       setSyncError(e.message);
+      console.error('Registration error:', e);
       return null;
     } finally {
       setLoading(false);
