@@ -23,6 +23,8 @@
     "babel-plugin-transform-inline-environment-variables": "^0.4.4"
   },
   "scripts": {
+    "start": "npx expo start",
+    "web": "npx expo start --web",
     "export": "npx expo export --clear"
   }
 }
