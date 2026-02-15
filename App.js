@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import YoutubePlayer from 'react-native-youtube-iframe';
+import InterviewScreen from './src/screens/InterviewScreen';
 
 
 const { width } = Dimensions.get('window');
@@ -1913,7 +1914,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
   const [showReview, setShowReview] = useState(false);
   const [reviewCards, setReviewCards] = useState([]);
   const [loadingReview, setLoadingReview] = useState(false);
-  const [activeTab, setActiveTab] = useState('home'); // home, challenges, achievements
+  const [activeTab, setActiveTab] = useState('home'); // home, challenges, achievements, interview
 
   const allLessons = Object.values(CURRICULUM).flatMap(track => track.lessons);
   const recommendations = AdaptiveLearningEngine.getRecommendations(userData, CURRICULUM);
@@ -2227,6 +2228,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
         {activeTab === 'home' && renderHomeTab()}
         {activeTab === 'challenges' && renderChallengesTab()}
         {activeTab === 'achievements' && renderAchievementsTab()}
+        {activeTab === 'interview' && <InterviewScreen />}
 
         {/* Bottom Tab Bar */}
         <View style={{
@@ -2235,6 +2237,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
         }}>
           {[
             { id: 'home', label: 'Home', emoji: '🏠' },
+            { id: 'interview', label: 'Interview', emoji: '🎤' },
             { id: 'challenges', label: 'Challenges', emoji: '🏆' },
             { id: 'achievements', label: 'Badges', emoji: '🏅' },
           ].map(tab => (
