@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase, TABLES } from '../config/supabase';
 
 const STORAGE_KEY = '@kesandu_practice_problems';
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
@@ -143,7 +144,7 @@ Return ONLY valid JSON:
   }
 }
 
-export default function usePracticeProblems() {
+export default function usePracticeProblems(userId = null) {
   const [currentProblem, setCurrentProblem] = useState(null);
   const [problemHistory, setProblemHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -166,6 +167,35 @@ export default function usePracticeProblems() {
     })();
   }, []);
 
+  const saveProblemToSupabase = useCallback(async (problem) => {
+    if (!userId || !problem) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.PRACTICE_PROBLEMS)
+        .insert([
+          {
+            user_id: userId,
+            title: problem.title,
+            description: problem.description,
+            difficulty: problem.difficulty?.toLowerCase() || 'medium',
+            problem_type: problem.problemType,
+            tags: problem.keyTopics || [],
+            constraints: null,
+            examples: null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.warn('Failed to save problem to Supabase:', err);
+      return null;
+    }
+  }, [userId]);
+
   const generateNewProblem = useCallback(async (role, problemType, difficulty = DIFFICULTY_LEVELS.MEDIUM) => {
     setLoading(true);
     setError(null);
@@ -174,6 +204,12 @@ export default function usePracticeProblems() {
     try {
       const problem = await generateProblem(role, problemType, difficulty);
       setCurrentProblem(problem);
+
+      // Save to Supabase if userId is available
+      if (userId) {
+        await saveProblemToSupabase(problem);
+      }
+
       return problem;
     } catch (err) {
       setError(err.message);
@@ -182,7 +218,7 @@ export default function usePracticeProblems() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId, saveProblemToSupabase]);
 
   const submitSolution = useCallback(async (solution) => {
     if (!currentProblem) {

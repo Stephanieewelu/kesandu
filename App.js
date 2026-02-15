@@ -17,6 +17,7 @@ import SpacedRepetitionScreen from './src/screens/SpacedRepetitionScreen';
 import CloudSyncScreen from './src/screens/CloudSyncScreen';
 import CodeReviewScreen from './src/screens/CodeReviewScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
+import EditProblemScreen from './src/screens/EditProblemScreen';
 import useMobileSync from './src/hooks/useMobileSyncSupabase';
 
 
@@ -2244,7 +2245,7 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
         {activeTab === 'challenges' && renderChallengesTab()}
         {activeTab === 'achievements' && renderAchievementsTab()}
         {activeTab === 'interview' && <InterviewScreen />}
-        {activeTab === 'practice' && <PracticeProblemsScreen />}
+        {activeTab === 'practice' && <PracticeProblemsScreen userProfile={userProfile} />}
         {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
         {activeTab === 'spaced' && <SpacedRepetitionScreen />}
         {activeTab === 'code' && <CodeReviewScreen />}
@@ -2348,6 +2349,23 @@ export default function App() {
           setCurrentScreen('home');
         }}
         onBack={() => setCurrentScreen('dashboard')}
+      />
+    );
+  }
+
+  // Handle edit problem screen
+  if (editingProblem) {
+    return (
+      <EditProblemScreen
+        problem={editingProblem}
+        userProfile={sync.userProfile}
+        onSave={() => {
+          setEditingProblem(null);
+          setCurrentScreen('dashboard');
+        }}
+        onCancel={() => {
+          setEditingProblem(null);
+        }}
       />
     );
   }
