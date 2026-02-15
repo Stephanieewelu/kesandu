@@ -18,27 +18,39 @@ export default function useMobileSync() {
 
     const initializeAuth = async () => {
       try {
-        // First try to restore session from localStorage
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('🔄 Attempting to restore session...');
+
+        // First try to restore session from localStorage/AsyncStorage with timeout
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session restore timeout')), 5000)
+        );
+
+        const { data: { session }, error } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
 
         if (isMounted) {
           if (error) {
-            console.warn('Session restore warning:', error.message);
-            setIsAuthenticated(false);
+            console.warn('⚠️  Session restore error (will retry with auth state):', error.message);
+            // Don't fail immediately - let auth state listener try
             setLoading(false);
           } else if (session?.user) {
+            console.log('✅ Session restored from storage:', session.user.email);
             setIsAuthenticated(true);
             await loadUserProfile(session.user);
             setLoading(false);
           } else {
+            console.log('ℹ️  No session found');
             setIsAuthenticated(false);
             setLoading(false);
           }
         }
       } catch (e) {
-        console.error('Auth initialization error:', e);
+        console.error('❌ Auth initialization error:', e.message);
         if (isMounted) {
-          setIsAuthenticated(false);
+          // Don't immediately fail - auth state change listener will handle it
+          console.log('⏱️  Moving to auth state listener...');
           setLoading(false);
         }
       }
@@ -48,7 +60,9 @@ export default function useMobileSync() {
     initializeAuth();
 
     // Also subscribe to auth changes for real-time updates
+    // This listener will catch auth state changes that might be missed by getSession
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Auth state changed:', event, session?.user?.email);
       if (isMounted) {
         if (session?.user) {
           setIsAuthenticated(true);
@@ -85,15 +99,23 @@ export default function useMobileSync() {
 
   const loadUserProfile = async (user) => {
     try {
+      console.log('📝 Loading user profile for:', user.email);
+
       const { data, error } = await supabase
         .from(TABLES.USERS)
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      // PGRST116 = not found, 406 = not acceptable/RLS issue
+      // In both cases, create a basic profile from auth user
+      if (error && error.code !== 'PGRST116' && error.status !== 406) {
+        console.error('❌ Profile load error:', error.code, error.message);
+        throw error;
+      }
 
       if (data) {
+        console.log('✅ Profile found in database');
         setUserProfile({
           userId: data.id,
           email: user.email,
@@ -102,6 +124,7 @@ export default function useMobileSync() {
           createdAt: data.created_at,
         });
       } else {
+        console.log('ℹ️  Profile not found, using auth data as fallback');
         setUserProfile({
           userId: user.id,
           email: user.email,
@@ -111,7 +134,16 @@ export default function useMobileSync() {
         });
       }
     } catch (e) {
-      console.error('Load profile error:', e);
+      console.error('❌ Load profile error:', e.message);
+      // Even if profile load fails, set a minimal profile so app can proceed
+      console.log('⚠️  Setting fallback profile');
+      setUserProfile({
+        userId: user.id,
+        email: user.email,
+        name: user.email?.split('@')[0] || 'User',
+        tier: 'free',
+        createdAt: new Date().toISOString(),
+      });
     }
   };
 
