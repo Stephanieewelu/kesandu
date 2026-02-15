@@ -2519,9 +2519,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   msgBubble: {
-    maxWidth: '85%',
+    maxWidth: IS_WEB ? '70%' : '85%',
     borderRadius: 16,
-    padding: 14,
+    padding: IS_WEB ? 16 : 14,
   },
   aiBubble: {
     backgroundColor: COLORS.surface,
@@ -2532,9 +2532,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   msgText: {
-    fontSize: 15,
+    fontSize: IS_WEB ? 16 : 15,
     color: COLORS.text,
-    lineHeight: 22,
+    lineHeight: IS_WEB ? 24 : 22,
   },
   userText: {
     color: COLORS.bg,
@@ -2562,9 +2562,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
+    paddingHorizontal: IS_WEB ? 18 : 16,
+    paddingVertical: IS_WEB ? 12 : 10,
+    fontSize: IS_WEB ? 16 : 15,
     color: COLORS.text,
     maxHeight: 100,
     borderWidth: 1,
