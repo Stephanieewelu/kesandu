@@ -48,7 +48,7 @@ const API_CONFIG = {
     apiKey: GEMINI_API_KEY,
     model: 'gemini-2.5-flash',
   },
-  apiUrl: API_URL,
+  apiUrl: null, // Disabled proxy due to CORS issues, using direct API
 };
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
