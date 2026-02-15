@@ -48,7 +48,7 @@ const API_CONFIG = {
     apiKey: GEMINI_API_KEY,
     model: 'gemini-2.5-flash',
   },
-  apiUrl: API_URL,
+  apiUrl: null, // Disabled proxy due to CORS issues, using direct API
 };
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -59,8 +59,8 @@ async function callGemini(prompt) {
     let requestBody;
 
     if (API_CONFIG.apiUrl) { // Use proxy if API_CONFIG.apiUrl is set
-      requestUrl = `${API_CONFIG.apiUrl}/gemini/generateContent`;
-      requestBody = JSON.stringify({ prompt });
+      requestUrl = `${API_CONFIG.apiUrl}/api/gemini/generateContent`;
+      requestBody = JSON.stringify({ prompt, apiKey: API_CONFIG.gemini.apiKey });
       console.log('Calling Gemini via proxy');
     } else { // Fallback to direct Gemini API
       requestUrl = `${GEMINI_API_URL}/${API_CONFIG.gemini.model}:generateContent?key=${API_CONFIG.gemini.apiKey}`;
@@ -98,6 +98,7 @@ async function callGemini(prompt) {
     text = text.trim();
 
     console.log('Gemini response (first 100):', text.substring(0, 100));
+    console.log('Full response:', text);
     return text;
   } catch (error) {
     console.error('callGemini error:', error.message);
@@ -144,12 +145,14 @@ Respond in this exact JSON format:
 }`;
     try {
       const raw = await callGemini(prompt);
+      console.log('Raw Gemini response:', raw.substring(0, 200));
       const parsed = JSON.parse(raw);
       return {
         text: parsed.text || "Let's think about this differently...",
         evaluation: parsed.evaluation || { depth_level: 0 },
       };
     } catch (error) {
+      console.error('FirstPrinciples converse error:', error.message, 'Raw response:', error);
       return {
         text: "I had trouble processing that. Could you rephrase your thinking?",
         evaluation: { depth_level: 0 },
