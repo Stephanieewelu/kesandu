@@ -32,10 +32,10 @@ export default function PracticeProblemsScreen() {
   const [showStats, setShowStats] = useState(false);
 
   const ROLES = {
-    DATA_ENGINEER: 'Data Engineer 🔧',
-    AI_ENGINEER: 'AI Engineer 🤖',
-    DATA_SCIENTIST: 'Data Scientist 📊',
-    ANALYST: 'Data Analyst 📈',
+    DATA_ENGINEER: 'Data Engineer Tool',
+    AI_ENGINEER: 'AI Engineer',
+    DATA_SCIENTIST: 'Data Scientist',
+    ANALYST: 'Data Analyst',
   };
 
   const handleGenerateProblem = async () => {
@@ -65,7 +65,7 @@ export default function PracticeProblemsScreen() {
         <View style={styles.container}>
           <ScrollView contentContainerStyle={styles.selectorScroll} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
-              <Text style={styles.title}>💪 Practice Problems</Text>
+              <Text style={styles.title}>Practice Problems</Text>
               <Text style={styles.subtitle}>Build mastery through deliberate practice</Text>
             </View>
 
@@ -131,10 +131,10 @@ export default function PracticeProblemsScreen() {
 
           <View style={styles.footer}>
             <TouchableOpacity style={styles.startButton} onPress={handleGenerateProblem}>
-              <Text style={styles.startButtonText}>🎯 Start Problem</Text>
+              <Text style={styles.startButtonText}>Target Start Problem</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.statsButton} onPress={() => setShowStats(true)}>
-              <Text style={styles.statsButtonText}>📊 My Stats</Text>
+              <Text style={styles.statsButtonText}>Statistics My Stats</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -149,7 +149,7 @@ export default function PracticeProblemsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.statsScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>📊 Your Stats</Text>
+            <Text style={styles.title}>Statistics Your Stats</Text>
           </View>
 
           {stats.totalAttempts === 0 ? (
@@ -166,17 +166,17 @@ export default function PracticeProblemsScreen() {
                 <StatCard
                   label="Total Attempts"
                   value={stats.totalAttempts}
-                  icon="💪"
+                  icon="strength"
                 />
                 <StatCard
                   label="Average Score"
                   value={`${stats.averageScore}%`}
-                  icon="📈"
+                  icon="growth"
                 />
                 <StatCard
                   label="Solved (70+)"
                   value={stats.problemsSolved}
-                  icon="✅"
+                  icon="Check"
                 />
               </View>
 
@@ -256,7 +256,7 @@ export default function PracticeProblemsScreen() {
             {/* Hints */}
             {practice.currentProblem.hints && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💡 Hints</Text>
+                <Text style={styles.sectionTitle}>Tip: Hints</Text>
                 {practice.currentProblem.hints.map((hint, idx) => (
                   <View key={idx} style={styles.hintCard}>
                     <Text style={styles.hintLabel}>Hint {idx + 1}</Text>
@@ -286,7 +286,7 @@ export default function PracticeProblemsScreen() {
               {practice.loading ? (
                 <ActivityIndicator color={COLORS.bg} size="small" />
               ) : (
-                <Text style={styles.submitButtonText}>📤 Submit Solution</Text>
+                <Text style={styles.submitButtonText}>Submit Solution</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -302,7 +302,7 @@ export default function PracticeProblemsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.evaluationScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>📋 Evaluation</Text>
+            <Text style={styles.title}>List Evaluation</Text>
           </View>
 
           {/* Score */}
@@ -315,7 +315,7 @@ export default function PracticeProblemsScreen() {
           {/* Strengths */}
           {eval_.strengths && eval_.strengths.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>✅ Strengths</Text>
+              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>Check Strengths</Text>
               {eval_.strengths.map((strength, idx) => (
                 <View key={idx} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
@@ -328,7 +328,7 @@ export default function PracticeProblemsScreen() {
           {/* Weaknesses */}
           {eval_.weaknesses && eval_.weaknesses.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>⚠️ Weaknesses</Text>
+              <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>Warning Weaknesses</Text>
               {eval_.weaknesses.map((weakness, idx) => (
                 <View key={idx} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
@@ -341,7 +341,7 @@ export default function PracticeProblemsScreen() {
           {/* Improvements */}
           {eval_.improvements && eval_.improvements.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📈 Improvements</Text>
+              <Text style={styles.sectionTitle}>Growth Improvements</Text>
               {eval_.improvements.map((improvement, idx) => (
                 <View key={idx} style={styles.improvementCard}>
                   <Text style={styles.improvementText}>{improvement}</Text>
@@ -363,7 +363,7 @@ export default function PracticeProblemsScreen() {
           {/* Feedback */}
           {eval_.feedback && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>💬 Feedback</Text>
+              <Text style={styles.sectionTitle}>Comment Feedback</Text>
               <View style={styles.feedbackCard}>
                 <Text style={styles.feedbackText}>{eval_.feedback}</Text>
               </View>
@@ -373,7 +373,7 @@ export default function PracticeProblemsScreen() {
 
         <View style={styles.evaluationFooter}>
           <TouchableOpacity style={styles.nextButton} onPress={handleNewProblem}>
-            <Text style={styles.nextButtonText}>🚀 Next Problem</Text>
+            <Text style={styles.nextButtonText}>Launch Next Problem</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

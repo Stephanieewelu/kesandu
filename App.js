@@ -2250,24 +2250,23 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
           }}
         >
           {[
-            { id: 'home', label: 'Home', emoji: '🏠' },
-            { id: 'interview', label: 'Interview', emoji: '🎤' },
-            { id: 'practice', label: 'Practice', emoji: '💪' },
-            { id: 'portfolio', label: 'Portfolio', emoji: '🎨' },
-            { id: 'spaced', label: 'Spaced', emoji: '🧠' },
-            { id: 'code', label: 'Code', emoji: '🔍' },
-            { id: 'sync', label: 'Cloud', emoji: '☁️' },
-            { id: 'challenges', label: 'Challenges', emoji: '🏆' },
-            { id: 'achievements', label: 'Badges', emoji: '🏅' },
+            { id: 'home', label: 'Learn' },
+            { id: 'interview', label: 'Interview' },
+            { id: 'practice', label: 'Practice' },
+            { id: 'portfolio', label: 'Portfolio' },
+            { id: 'spaced', label: 'Review' },
+            { id: 'code', label: 'Code Review' },
+            { id: 'sync', label: 'Sync' },
+            { id: 'challenges', label: 'Challenges' },
+            { id: 'achievements', label: 'Badges' },
           ].map(tab => (
             <TouchableOpacity
               key={tab.id}
               style={{ flex: 1, alignItems: 'center', gap: 2 }}
               onPress={() => setActiveTab(tab.id)}
             >
-              <Text style={{ fontSize: 20 }}>{tab.emoji}</Text>
               <Text style={{
-                fontSize: 10, fontWeight: '600',
+                fontSize: 11, fontWeight: '600',
                 color: activeTab === tab.id ? COLORS.text : COLORS.textMuted,
               }}>{tab.label}</Text>
             </TouchableOpacity>

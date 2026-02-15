@@ -48,7 +48,7 @@ export default function CloudSyncScreen() {
 
     Alert.alert(
       'Sync Complete',
-      `✅ ${result.success} items synced\n${result.failed > 0 ? `⚠️ ${result.failed} failed` : ''}`
+      `${result.success} items synced successfully${result.failed > 0 ? `\n${result.failed} items failed` : ''}`
     );
 
     setSyncProgress(null);
@@ -77,7 +77,7 @@ export default function CloudSyncScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>☁️ Cloud Sync</Text>
+            <Text style={styles.title}>Cloud Sync</Text>
             <Text style={styles.subtitle}>Keep your progress everywhere</Text>
           </View>
 
@@ -112,10 +112,10 @@ export default function CloudSyncScreen() {
 
           <View style={styles.benefitsCard}>
             <Text style={styles.benefitsTitle}>Benefits of Cloud Sync</Text>
-            <BenefitItem icon="☁️" text="Access anywhere on any device" />
-            <BenefitItem icon="🔄" text="Automatic sync when online" />
-            <BenefitItem icon="📱" text="Work offline, sync later" />
-            <BenefitItem icon="🛡️" text="Your data is secure" />
+            <BenefitItem icon="cloud" text="Access anywhere on any device" />
+            <BenefitItem icon="refresh" text="Automatic sync when online" />
+            <BenefitItem icon="device" text="Work offline, sync later" />
+            <BenefitItem icon="Security" text="Your data is secure" />
           </View>
         </View>
       </SafeAreaView>
@@ -126,14 +126,14 @@ export default function CloudSyncScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>☁️ Cloud Sync</Text>
+          <Text style={styles.title}>Cloud Sync</Text>
           <Text style={styles.subtitle}>Manage your account & devices</Text>
         </View>
 
         {/* User Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.profileIcon}>
-            <Text style={styles.profileIconText}>👤</Text>
+            <Text style={styles.profileIconText}>User</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.profileName}>{sync.userProfile?.name}</Text>
@@ -147,9 +147,9 @@ export default function CloudSyncScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Sync Status */}
+        {/* Synchronization Status */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔄 Sync Status</Text>
+          <Text style={styles.sectionTitle}>Synchronization Status</Text>
 
           {/* Status Indicator */}
           <View style={styles.statusCard}>
@@ -173,7 +173,7 @@ export default function CloudSyncScreen() {
           {sync.pendingChanges.length > 0 && (
             <View style={styles.pendingCard}>
               <Text style={styles.pendingTitle}>
-                📤 {sync.pendingChanges.length} pending changes
+                {sync.pendingChanges.length} pending changes
               </Text>
               <TouchableOpacity style={styles.syncButton} onPress={handleSync}>
                 {syncProgress ? (
@@ -192,14 +192,14 @@ export default function CloudSyncScreen() {
 
           {sync.syncError && (
             <View style={styles.errorCard}>
-              <Text style={styles.errorText}>⚠️ {sync.syncError}</Text>
+              <Text style={styles.errorText}>Warning {sync.syncError}</Text>
             </View>
           )}
         </View>
 
         {/* Devices */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📱 Connected Devices</Text>
+          <Text style={styles.sectionTitle}>Connected Devices</Text>
 
           {sync.devices.length === 0 ? (
             <Text style={styles.emptyText}>No devices registered yet</Text>
@@ -239,7 +239,7 @@ export default function CloudSyncScreen() {
 
         {/* Sync Stats */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Sync History</Text>
+          <Text style={styles.sectionTitle}>Sync History</Text>
           <View style={styles.statsRow}>
             <Text style={styles.statsLabel}>Total Devices</Text>
             <Text style={styles.statsValue}>{sync.devices.length}</Text>
@@ -278,7 +278,7 @@ export default function CloudSyncScreen() {
               );
             }}
           >
-            <Text style={styles.clearButtonText}>🗑️ Clear Sync History</Text>
+            <Text style={styles.clearButtonText}>Clear Sync History</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -71,7 +71,7 @@ export default function CodeReviewScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>🔍 AI Code Review</Text>
+            <Text style={styles.title}>Code Review</Text>
             <Text style={styles.subtitle}>Get expert feedback on your code</Text>
           </View>
 
@@ -145,7 +145,7 @@ export default function CodeReviewScreen() {
             {codeReview.loading ? (
               <ActivityIndicator color={COLORS.bg} size="small" />
             ) : (
-              <Text style={styles.submitButtonText}>📤 Submit for Review</Text>
+              <Text style={styles.submitButtonText}>Submit for Review</Text>
             )}
           </TouchableOpacity>
 
@@ -209,7 +209,7 @@ export default function CodeReviewScreen() {
           {/* Strengths */}
           {review.strengths && review.strengths.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>✅ Strengths</Text>
+              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>Strengths</Text>
               {review.strengths.map((s, idx) => (
                 <View key={idx} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
@@ -225,7 +225,7 @@ export default function CodeReviewScreen() {
           {/* Issues */}
           {review.issues && review.issues.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>🐛 Issues Found</Text>
+              <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>Issues Found</Text>
               {review.issues.map((issue, idx) => (
                 <IssueCard key={idx} issue={issue} />
               ))}
@@ -234,7 +234,7 @@ export default function CodeReviewScreen() {
 
           {/* Complexity */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⏱️ Complexity Analysis</Text>
+            <Text style={styles.sectionTitle}>Complexity Analysis</Text>
             <View style={styles.complexityCard}>
               <ComplexityRow label="Time" value={review.complexity.timeComplexity} />
               <ComplexityRow label="Space" value={review.complexity.spaceComplexity} />
@@ -245,7 +245,7 @@ export default function CodeReviewScreen() {
           {/* Best Practices */}
           {review.bestPractices && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>⭐ Best Practices</Text>
+              <Text style={styles.sectionTitle}>Best Practices</Text>
               {review.bestPractices.map((practice, idx) => (
                 <View key={idx} style={styles.practiceItem}>
                   <Text style={styles.practiceText}>{practice}</Text>
@@ -256,7 +256,7 @@ export default function CodeReviewScreen() {
 
           {/* Learning */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>💡 Key Learning</Text>
+            <Text style={styles.sectionTitle}>Key Learnings</Text>
             <View style={styles.learningCard}>
               <Text style={styles.learningText}>{review.learning}</Text>
             </View>
@@ -264,7 +264,7 @@ export default function CodeReviewScreen() {
 
           {/* Next Steps */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🚀 Next Steps</Text>
+            <Text style={styles.sectionTitle}>Next Steps</Text>
             {review.nextSteps?.map((step, idx) => (
               <View key={idx} style={styles.nextStepItem}>
                 <Text style={styles.stepNumber}>{idx + 1}.</Text>
@@ -279,7 +279,7 @@ export default function CodeReviewScreen() {
               style={styles.optimizeButton}
               onPress={() => setShowOptimizations(true)}
             >
-              <Text style={styles.optimizeButtonText}>🚀 Get Optimizations</Text>
+              <Text style={styles.optimizeButtonText}>Get Optimizations</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.backButton}
@@ -304,7 +304,7 @@ export default function CodeReviewScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>🚀 Code Optimizations</Text>
+            <Text style={styles.title}>Code Optimizations</Text>
             <Text style={styles.subtitle}>Focus: {optimizations.focusArea}</Text>
           </View>
 
@@ -323,13 +323,13 @@ export default function CodeReviewScreen() {
               <Text style={styles.optimizedCode}>{improvement.optimizedCode}</Text>
 
               <View style={styles.benefitRow}>
-                <Text style={styles.benefitLabel}>✅ Benefit</Text>
+                <Text style={styles.benefitLabel}>Benefits</Text>
                 <Text style={styles.benefitText}>{improvement.benefit}</Text>
               </View>
 
               {improvement.tradeoff && (
                 <View style={styles.tradeoffRow}>
-                  <Text style={styles.tradeoffLabel}>⚖️ Tradeoff</Text>
+                  <Text style={styles.tradeoffLabel}>Tradeoff</Text>
                   <Text style={styles.tradeoffText}>{improvement.tradeoff}</Text>
                 </View>
               )}
@@ -396,9 +396,9 @@ function IssueCard({ issue }) {
         {issue.severity.toUpperCase()}
       </Text>
       <Text style={styles.issueTitle}>{issue.issue}</Text>
-      <Text style={styles.issueLine}>📍 {issue.line}</Text>
+      <Text style={styles.issueLine}>{issue.line}</Text>
       <View style={styles.issueFixContainer}>
-        <Text style={styles.fixLabel}>💊 Fix:</Text>
+        <Text style={styles.fixLabel}>Fix:</Text>
         <Text style={styles.fixText}>{issue.fix}</Text>
       </View>
     </View>

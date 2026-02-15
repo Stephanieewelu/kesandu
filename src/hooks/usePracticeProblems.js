@@ -6,12 +6,12 @@ const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const PROBLEM_TYPES = {
-  CODING: { name: 'Coding', emoji: '💻', description: 'Write and optimize code' },
-  SYSTEM_DESIGN: { name: 'System Design', emoji: '🏗️', description: 'Design large-scale systems' },
-  SQL: { name: 'SQL Query', emoji: '🗄️', description: 'Write complex SQL queries' },
-  CASE_STUDY: { name: 'Case Study', emoji: '📊', description: 'Analyze business problems' },
-  DEBUGGING: { name: 'Debugging', emoji: '🐛', description: 'Find and fix bugs' },
-  ARCHITECTURE: { name: 'Architecture', emoji: '🧱', description: 'Design data architectures' },
+  CODING: { name: 'Coding', emoji: 'Code', description: 'Write and optimize code' },
+  SYSTEM_DESIGN: { name: 'System Design', emoji: 'Design', description: 'Design large-scale systems' },
+  SQL: { name: 'SQL Query', emoji: 'Database', description: 'Write complex SQL queries' },
+  CASE_STUDY: { name: 'Case Study', emoji: 'Analysis', description: 'Analyze business problems' },
+  DEBUGGING: { name: 'Debugging', emoji: 'Debug', description: 'Find and fix bugs' },
+  ARCHITECTURE: { name: 'Architecture', emoji: 'Architecture', description: 'Design data architectures' },
 };
 
 const DIFFICULTY_LEVELS = {

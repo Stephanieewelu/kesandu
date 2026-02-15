@@ -21,12 +21,12 @@ const COLORS = {
 };
 
 const QUALITY_SCALE = [
-  { label: '❌ Forgot', value: 0, color: '#EF4444', description: 'Complete blackout' },
-  { label: '😕 Difficult', value: 1, color: '#F97316', description: 'Very difficult' },
-  { label: '🤔 Unsure', value: 2, color: '#F59E0B', description: 'Difficult' },
-  { label: '👍 OK', value: 3, color: '#FBBF24', description: 'Acceptable' },
-  { label: '😊 Good', value: 4, color: '#34D399', description: 'Well done' },
-  { label: '🤩 Perfect', value: 5, color: '#22C55E', description: 'Perfect' },
+  { label: 'Did Not Know', value: 0, color: '#EF4444', description: 'Complete blackout' },
+  { label: 'Difficult', value: 1, color: '#F97316', description: 'Very difficult' },
+  { label: 'Unsure', value: 2, color: '#F59E0B', description: 'Difficult' },
+  { label: 'Acceptable', value: 3, color: '#FBBF24', description: 'Acceptable' },
+  { label: 'Good', value: 4, color: '#34D399', description: 'Well done' },
+  { label: 'Perfect', value: 5, color: '#22C55E', description: 'Perfect' },
 ];
 
 export default function SpacedRepetitionScreen() {
@@ -56,20 +56,20 @@ export default function SpacedRepetitionScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>🧠 Spaced Repetition</Text>
+            <Text style={styles.title}>Spaced Repetition</Text>
             <Text style={styles.subtitle}>Master through strategic review</Text>
           </View>
 
           {/* Key Stats */}
           <View style={styles.statsGrid}>
             <StatCard
-              icon="📚"
+              icon="Library"
               label="Items"
               value={sr.stats.totalItems}
               color={COLORS.info}
             />
             <StatCard
-              icon="⏰"
+              icon="Timer"
               label="Due Today"
               value={sr.stats.dueToday}
               color={COLORS.danger}
@@ -81,7 +81,7 @@ export default function SpacedRepetitionScreen() {
               color={COLORS.warning}
             />
             <StatCard
-              icon="📈"
+              icon="growth"
               label="Avg Quality"
               value={`${globalStats.avgQuality}/5`}
               color={COLORS.success}
@@ -91,7 +91,7 @@ export default function SpacedRepetitionScreen() {
           {/* Action Card */}
           {sr.stats.dueToday > 0 && (
             <View style={styles.actionCard}>
-              <Text style={styles.actionEmoji}>⏰</Text>
+              <Text style={styles.actionEmoji}>Timer</Text>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitle}>Ready to Review!</Text>
                 <Text style={styles.actionText}>
@@ -109,31 +109,31 @@ export default function SpacedRepetitionScreen() {
 
           {/* Interval Breakdown */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📊 Learning Progress</Text>
+            <Text style={styles.sectionTitle}>Learning Progress</Text>
 
             <IntervalCard
-              icon="🌱"
+              icon="Leaf"
               title="New Items"
               count={intervals.new.length}
               description="Start learning"
               color={COLORS.info}
             />
             <IntervalCard
-              icon="📖"
+              icon="Book"
               title="Learning"
               count={intervals.learning.length}
               description="Build strength"
               color={COLORS.warning}
             />
             <IntervalCard
-              icon="🔄"
+              icon="refresh"
               title="Review"
               count={intervals.review.length}
               description="Maintain knowledge"
               color={COLORS.accent}
             />
             <IntervalCard
-              icon="🏆"
+              icon="Trophy"
               title="Mastered"
               count={intervals.mastered.length}
               description="Long-term retention"
@@ -143,7 +143,7 @@ export default function SpacedRepetitionScreen() {
 
           {/* Global Stats */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📈 Global Stats</Text>
+            <Text style={styles.sectionTitle}>Growth Global Stats</Text>
             <View style={styles.statsTable}>
               <StatsRow
                 label="Avg Repetitions"
@@ -163,13 +163,13 @@ export default function SpacedRepetitionScreen() {
           {/* Navigation */}
           <View style={styles.navButtons}>
             <NavButton
-              icon="⏱️"
+              icon="Timer"
               label="Review"
               onPress={() => setCurrentView('review')}
               variant="primary"
             />
             <NavButton
-              icon="📊"
+              icon="stats"
               label="Statistics"
               onPress={() => setCurrentView('stats')}
             />
@@ -188,12 +188,12 @@ export default function SpacedRepetitionScreen() {
         <SafeAreaView style={styles.safeArea}>
           <ScrollView contentContainerStyle={styles.scroll}>
             <View style={styles.header}>
-              <Text style={styles.title}>✅ All Caught Up!</Text>
+              <Text style={styles.title}>Check All Caught Up!</Text>
               <Text style={styles.subtitle}>Great job staying on top of your reviews</Text>
             </View>
 
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>🎉</Text>
+              <Text style={styles.emptyIcon}>Celebrate</Text>
               <Text style={styles.emptyText}>No items due today. Come back tomorrow!</Text>
             </View>
 
@@ -212,7 +212,7 @@ export default function SpacedRepetitionScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.header}>
-            <Text style={styles.title}>📖 Review Session</Text>
+            <Text style={styles.title}>Book Review Session</Text>
             <Text style={styles.subtitle}>{dueItems.length} items due</Text>
           </View>
 
@@ -243,7 +243,7 @@ export default function SpacedRepetitionScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.header}>
-            <Text style={styles.title}>📊 Your Statistics</Text>
+            <Text style={styles.title}>Statistics Your Statistics</Text>
             <Text style={styles.subtitle}>Track your learning progress</Text>
           </View>
 

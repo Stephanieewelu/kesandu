@@ -42,7 +42,7 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
     return (
       <View style={styles.container}>
         <Text style={styles.placeholderText}>
-          {isListening ? '🎤 Listening... Real-time feedback will appear here' : '👂 Feedback ready when you speak'}
+          {isListening ? 'Mic Listening... Real-time feedback will appear here' : 'Listen Feedback ready when you speak'}
         </Text>
       </View>
     );
@@ -68,19 +68,19 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
                 label="Coverage"
                 value={feedback.coveragePercent}
                 type="percentage"
-                icon="📊"
+                icon="stats"
               />
               <MetricBadge
                 label="Clarity"
                 value={feedback.clarity}
                 type="score"
-                icon="🗣️"
+                icon="Voice"
               />
               <MetricBadge
                 label="Depth"
                 value={feedback.depth}
                 type="score"
-                icon="🔍"
+                icon="search"
               />
             </View>
 
@@ -95,7 +95,7 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
                 ]}
               >
                 <Text style={styles.statusEmoji}>
-                  {feedback.isOnTrack ? '✅' : '⚠️'}
+                  {feedback.isOnTrack ? 'Check' : 'Warning'}
                 </Text>
                 <Text style={styles.statusText}>
                   {feedback.isOnTrack
@@ -108,7 +108,7 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
             {/* Strengths */}
             {feedback.strengths && feedback.strengths.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>✅ What You\'re Doing Well</Text>
+                <Text style={styles.sectionTitle}>Check What You\'re Doing Well</Text>
                 {feedback.strengths.map((strength, idx) => (
                   <View key={idx} style={styles.item}>
                     <Text style={styles.bullet}>•</Text>
@@ -122,7 +122,7 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
             {feedback.gaps && feedback.gaps.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>
-                  🎯 What to Add
+                  Target What to Add
                 </Text>
                 {feedback.gaps.map((gap, idx) => (
                   <View key={idx} style={styles.item}>
@@ -136,7 +136,7 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
             {/* Tips */}
             {feedback.tips && feedback.tips.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>💡 Quick Tip</Text>
+                <Text style={styles.sectionTitle}>Tip: Quick Tip</Text>
                 {feedback.tips.map((tip, idx) => (
                   <View key={idx} style={styles.tipCard}>
                     <Text style={styles.tipText}>{tip}</Text>
@@ -149,7 +149,7 @@ export default function LiveInterviewFeedback({ feedback, loading, isListening }
             {feedback.suggestedAdditions &&
               feedback.suggestedAdditions.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>💬 Consider Mentioning</Text>
+                  <Text style={styles.sectionTitle}>Comment Consider Mentioning</Text>
                   {feedback.suggestedAdditions.map((addition, idx) => (
                     <View key={idx} style={styles.suggestionCard}>
                       <Text style={styles.suggestionText}>{addition}</Text>

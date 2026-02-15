@@ -6,7 +6,7 @@ const STORAGE_KEY = '@kesandu_certifications';
 const CERTIFICATION_TIERS = {
   PRACTITIONER: {
     name: 'Certified Practitioner',
-    emoji: '🥉',
+    emoji: 'Bronze',
     requirements: {
       socratiAssessments: 3,
       coursesTeaching: 3,
@@ -17,7 +17,7 @@ const CERTIFICATION_TIERS = {
   },
   SPECIALIST: {
     name: 'Certified Specialist',
-    emoji: '🥈',
+    emoji: 'Silver',
     requirements: {
       socratiAssessments: 5,
       coursesTeaching: 10,
@@ -29,7 +29,7 @@ const CERTIFICATION_TIERS = {
   },
   EXPERT: {
     name: 'Certified Expert',
-    emoji: '🥇',
+    emoji: 'Gold',
     requirements: {
       socratiAssessments: 10,
       coursesTeaching: 25,
@@ -41,7 +41,7 @@ const CERTIFICATION_TIERS = {
   },
   GENIUS: {
     name: 'Kesandu Genius',
-    emoji: '💎',
+    emoji: 'Diamond',
     requirements: {
       socratiAssessments: 20,
       coursesTeaching: 50,
