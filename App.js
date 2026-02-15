@@ -16,6 +16,8 @@ import PortfolioBuilderScreen from './src/screens/PortfolioBuilderScreen';
 import SpacedRepetitionScreen from './src/screens/SpacedRepetitionScreen';
 import CloudSyncScreen from './src/screens/CloudSyncScreen';
 import CodeReviewScreen from './src/screens/CodeReviewScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
+import useMobileSync from './src/hooks/useMobileSyncSupabase';
 
 
 const { width } = Dimensions.get('window');
@@ -2282,10 +2284,14 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
 // MAIN APP
 // ============================================================================
 export default function App() {
+  const sync = useMobileSync();
   const userData = useUserData();
   const [activeLesson, setActiveLesson] = useState(null);
+  const [currentScreen, setCurrentScreen] = useState('home'); // home, settings
+  const [editingProblem, setEditingProblem] = useState(null);
 
-  if (!userData.loaded) {
+  // Show loading while checking auth
+  if (sync.loading || !userData.loaded) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -2296,6 +2302,12 @@ export default function App() {
     );
   }
 
+  // Show CloudSync (login/signup) if not authenticated
+  if (!sync.isAuthenticated) {
+    return <CloudSyncScreen />;
+  }
+
+  // Handle lesson dialog
   if (activeLesson) {
     return (
       <Dialogue
@@ -2306,10 +2318,39 @@ export default function App() {
     );
   }
 
+  // Handle different screens
+  if (currentScreen === 'dashboard') {
+    return (
+      <DashboardScreen
+        userProfile={sync.userProfile}
+        onNavigate={(screen, data) => {
+          if (screen === 'settings') setCurrentScreen('settings');
+          if (screen === 'editProblem') setEditingProblem(data);
+        }}
+      />
+    );
+  }
+
+  if (currentScreen === 'settings') {
+    return (
+      <SettingsScreen
+        userProfile={sync.userProfile}
+        onLogout={() => {
+          sync.logout();
+          setCurrentScreen('home');
+        }}
+        onBack={() => setCurrentScreen('dashboard')}
+      />
+    );
+  }
+
+  // Default: HomeScreen with auth support
   return (
     <HomeScreen
       userData={userData}
+      userProfile={sync.userProfile}
       onSelectLesson={(lesson) => setActiveLesson(lesson)}
+      onNavigateToDashboard={() => setCurrentScreen('dashboard')}
     />
   );
 }
