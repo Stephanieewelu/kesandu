@@ -10,10 +10,19 @@ import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
 import YoutubePlayer from 'react-native-youtube-iframe';
+import InterviewScreen from './src/screens/InterviewScreen';
+import PracticeProblemsScreen from './src/screens/PracticeProblemsScreen';
+import PortfolioBuilderScreen from './src/screens/PortfolioBuilderScreen';
+import SpacedRepetitionScreen from './src/screens/SpacedRepetitionScreen';
+import CloudSyncScreen from './src/screens/CloudSyncScreen';
+import CodeReviewScreen from './src/screens/CodeReviewScreen';
 
 
 const { width } = Dimensions.get('window');
 const IS_IOS = Platform.OS === 'ios';
+const IS_WEB = Platform.OS === 'web';
+const SCREEN_WIDTH = width;
+const MAX_CONTENT_WIDTH = IS_WEB ? Math.min(800, SCREEN_WIDTH - 32) : SCREEN_WIDTH;
 const COLORS = {
   bg: '#09090B',
   surface: '#18181B',
@@ -1801,10 +1810,11 @@ const Dialogue = ({ lesson, userData, onExit }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {showVideo && lesson.videoId && <YouTubePlayerComponent videoId={lesson.videoId} onClose={() => setShowVideo(false)} />}
-      {showJournal && <GuruJournal lessonId={lesson.id} onClose={() => setShowJournal(false)} />}
+      <View style={{ flex: 1, alignSelf: 'center', width: IS_WEB ? Math.min(800, width) : '100%' }}>
+        {showVideo && lesson.videoId && <YouTubePlayerComponent videoId={lesson.videoId} onClose={() => setShowVideo(false)} />}
+        {showJournal && <GuruJournal lessonId={lesson.id} onClose={() => setShowJournal(false)} />}
 
-      <View style={styles.dialogueHeader}>
+        <View style={styles.dialogueHeader}>
         <TouchableOpacity onPress={onExit} style={styles.headerBtn}><Text style={styles.headerBtnText}>Close</Text></TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>{isDebugMode ? '🔍 ' : ''}{lesson.title}</Text>
@@ -1860,7 +1870,8 @@ const Dialogue = ({ lesson, userData, onExit }) => {
             </TouchableOpacity>
           </View>
         )}
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -1908,7 +1919,7 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
   const [showReview, setShowReview] = useState(false);
   const [reviewCards, setReviewCards] = useState([]);
   const [loadingReview, setLoadingReview] = useState(false);
-  const [activeTab, setActiveTab] = useState('home'); // home, challenges, achievements
+  const [activeTab, setActiveTab] = useState('home'); // home, interview, practice, portfolio, spaced, code, sync, challenges, achievements
 
   const allLessons = Object.values(CURRICULUM).flatMap(track => track.lessons);
   const recommendations = AdaptiveLearningEngine.getRecommendations(userData, CURRICULUM);
@@ -2193,21 +2204,22 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Achievement Toast */}
-      {userData.newAchievement && (
-        <AchievementToast
-          achievement={userData.newAchievement}
-          onDismiss={() => userData.setNewAchievement(null)}
-        />
-      )}
+      <View style={{ flex: 1, alignSelf: 'center', width: IS_WEB ? Math.min(800, width) : '100%' }}>
+        {/* Achievement Toast */}
+        {userData.newAchievement && (
+          <AchievementToast
+            achievement={userData.newAchievement}
+            onDismiss={() => userData.setNewAchievement(null)}
+          />
+        )}
 
-      {/* Video Player */}
-      {activeVideoId && (
-        <YouTubePlayerComponent videoId={activeVideoId} onClose={() => setActiveVideoId(null)} />
-      )}
+        {/* Video Player */}
+        {activeVideoId && (
+          <YouTubePlayerComponent videoId={activeVideoId} onClose={() => setActiveVideoId(null)} />
+        )}
 
-      {/* Header */}
-      <View style={styles.homeHeader}>
+        {/* Header */}
+        <View style={styles.homeHeader}>
         <View>
           <Text style={styles.homeTitle}>Kesandu</Text>
           <Text style={styles.homeSubtitle}>Birth of a Guru</Text>
@@ -2217,36 +2229,53 @@ const HomeScreen = ({ userData, onSelectLesson }) => {
         </View>
       </View>
 
-      {/* Tab Content */}
-      {activeTab === 'home' && renderHomeTab()}
-      {activeTab === 'challenges' && renderChallengesTab()}
-      {activeTab === 'achievements' && renderAchievementsTab()}
+        {/* Tab Content */}
+        {activeTab === 'home' && renderHomeTab()}
+        {activeTab === 'challenges' && renderChallengesTab()}
+        {activeTab === 'achievements' && renderAchievementsTab()}
+        {activeTab === 'interview' && <InterviewScreen />}
+        {activeTab === 'practice' && <PracticeProblemsScreen />}
+        {activeTab === 'portfolio' && <PortfolioBuilderScreen />}
+        {activeTab === 'spaced' && <SpacedRepetitionScreen />}
+        {activeTab === 'code' && <CodeReviewScreen />}
+        {activeTab === 'sync' && <CloudSyncScreen />}
 
-      {/* Bottom Tab Bar */}
-      <View style={{
-        flexDirection: 'row', borderTopWidth: 1, borderTopColor: COLORS.border,
-        backgroundColor: COLORS.bg, paddingBottom: IS_IOS ? 20 : 8, paddingTop: 8,
-      }}>
-        {[
-          { id: 'home', label: 'Home', emoji: '🏠' },
-          { id: 'challenges', label: 'Challenges', emoji: '🏆' },
-          { id: 'achievements', label: 'Badges', emoji: '🏅' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.id}
-            style={{ flex: 1, alignItems: 'center', gap: 2 }}
-            onPress={() => setActiveTab(tab.id)}
-          >
-            <Text style={{ fontSize: 20 }}>{tab.emoji}</Text>
-            <Text style={{
-              fontSize: 10, fontWeight: '600',
-              color: activeTab === tab.id ? COLORS.text : COLORS.textMuted,
-            }}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+        {/* Bottom Tab Bar */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{
+            borderTopWidth: 1, borderTopColor: COLORS.border,
+            backgroundColor: COLORS.bg, paddingBottom: IS_IOS ? 20 : 8, paddingTop: 8,
+          }}
+        >
+          {[
+            { id: 'home', label: 'Home', emoji: '🏠' },
+            { id: 'interview', label: 'Interview', emoji: '🎤' },
+            { id: 'practice', label: 'Practice', emoji: '💪' },
+            { id: 'portfolio', label: 'Portfolio', emoji: '🎨' },
+            { id: 'spaced', label: 'Spaced', emoji: '🧠' },
+            { id: 'code', label: 'Code', emoji: '🔍' },
+            { id: 'sync', label: 'Cloud', emoji: '☁️' },
+            { id: 'challenges', label: 'Challenges', emoji: '🏆' },
+            { id: 'achievements', label: 'Badges', emoji: '🏅' },
+          ].map(tab => (
+            <TouchableOpacity
+              key={tab.id}
+              style={{ flex: 1, alignItems: 'center', gap: 2 }}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text style={{ fontSize: 20 }}>{tab.emoji}</Text>
+              <Text style={{
+                fontSize: 10, fontWeight: '600',
+                color: activeTab === tab.id ? COLORS.text : COLORS.textMuted,
+              }}>{tab.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <StatusBar style="light" />
       </View>
-
-      <StatusBar style="light" />
     </SafeAreaView>
   );
 };
@@ -2512,9 +2541,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   msgBubble: {
-    maxWidth: '85%',
+    maxWidth: IS_WEB ? '70%' : '85%',
     borderRadius: 16,
-    padding: 14,
+    padding: IS_WEB ? 16 : 14,
   },
   aiBubble: {
     backgroundColor: COLORS.surface,
@@ -2525,9 +2554,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.accent,
   },
   msgText: {
-    fontSize: 15,
+    fontSize: IS_WEB ? 16 : 15,
     color: COLORS.text,
-    lineHeight: 22,
+    lineHeight: IS_WEB ? 24 : 22,
   },
   userText: {
     color: COLORS.bg,
@@ -2555,9 +2584,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.surface,
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
+    paddingHorizontal: IS_WEB ? 18 : 16,
+    paddingVertical: IS_WEB ? 12 : 10,
+    fontSize: IS_WEB ? 16 : 15,
     color: COLORS.text,
     maxHeight: 100,
     borderWidth: 1,
