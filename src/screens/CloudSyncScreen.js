@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import useMobileSync from '../hooks/useMobileSyncSupabase';
 
+
 const COLORS = {
   bg: '#09090B',
   surface: '#18181B',
