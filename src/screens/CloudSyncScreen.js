@@ -3,7 +3,8 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView,
   TextInput, Modal, Alert, ActivityIndicator
 } from 'react-native';
-import useMobileSync from '../hooks/useMobileSync';
+import useMobileSync from '../hooks/useMobileSyncSupabase';
+
 
 const COLORS = {
   bg: '#09090B',
