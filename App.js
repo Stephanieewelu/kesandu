@@ -2512,9 +2512,9 @@ export default function App() {
 
   // Main authenticated UI with persistent tab bar
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
       {/* Scrollable screen area */}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, overflow: 'hidden' }}>
         {renderScreen()}
       </View>
       {/* Persistent bottom tab bar */}
@@ -2522,11 +2522,7 @@ export default function App() {
         currentScreen={currentScreen}
         onChangeScreen={(screen) => setCurrentScreen(screen)}
       />
-      {/* SafeArea bottom inset for notched devices */}
-      {IS_IOS && (
-        <View style={{ backgroundColor: COLORS.surface, height: 20 }} />
-      )}
-    </View>
+    </SafeAreaView>
   );
 }
 // ============================================================================
