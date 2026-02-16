@@ -18,7 +18,7 @@ export default function useMobileSync() {
 
     const initializeAuth = async () => {
       try {
-        console.log('🔄 Attempting to restore session...');
+        console.log('[Session]Attempting to restore session...');
 
         // First try to restore session from localStorage/AsyncStorage with timeout
         const timeoutPromise = new Promise((_, reject) =>
@@ -32,25 +32,25 @@ export default function useMobileSync() {
 
         if (isMounted) {
           if (error) {
-            console.warn('⚠️  Session restore error (will retry with auth state):', error.message);
+            console.warn('[Warning]Session restore error (will retry with auth state):', error.message);
             // Don't fail immediately - let auth state listener try
             setLoading(false);
           } else if (session?.user) {
-            console.log('✅ Session restored from storage:', session.user.email);
+            console.log('[Success]Session restored from storage:', session.user.email);
             setIsAuthenticated(true);
             await loadUserProfile(session.user);
             setLoading(false);
           } else {
-            console.log('ℹ️  No session found');
+            console.log('[Info]No session found');
             setIsAuthenticated(false);
             setLoading(false);
           }
         }
       } catch (e) {
-        console.error('❌ Auth initialization error:', e.message);
+        console.error('[Error]Auth initialization error:', e.message);
         if (isMounted) {
           // Don't immediately fail - auth state change listener will handle it
-          console.log('⏱️  Moving to auth state listener...');
+          console.log('[Timeout]Moving to auth state listener...');
           setLoading(false);
         }
       }
@@ -62,7 +62,7 @@ export default function useMobileSync() {
     // Also subscribe to auth changes for real-time updates
     // This listener will catch auth state changes that might be missed by getSession
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('🔐 Auth state changed:', event, session?.user?.email);
+      console.log('[Auth]Auth state changed:', event, session?.user?.email);
       if (isMounted) {
         if (session?.user) {
           setIsAuthenticated(true);
@@ -99,7 +99,7 @@ export default function useMobileSync() {
 
   const loadUserProfile = async (user) => {
     try {
-      console.log('📝 Loading user profile for:', user.email);
+      console.log('[Profile]Loading user profile for:', user.email);
 
       const { data, error } = await supabase
         .from(TABLES.USERS)
@@ -110,12 +110,12 @@ export default function useMobileSync() {
       // PGRST116 = not found, 406 = not acceptable/RLS issue
       // In both cases, create a basic profile from auth user
       if (error && error.code !== 'PGRST116' && error.status !== 406) {
-        console.error('❌ Profile load error:', error.code, error.message);
+        console.error('[Error]Profile load error:', error.code, error.message);
         throw error;
       }
 
       if (data) {
-        console.log('✅ Profile found in database');
+        console.log('[Success]Profile found in database');
         setUserProfile({
           userId: data.id,
           email: user.email,
@@ -124,7 +124,7 @@ export default function useMobileSync() {
           createdAt: data.created_at,
         });
       } else {
-        console.log('ℹ️  Profile not found, using auth data as fallback');
+        console.log('[Info]Profile not found, using auth data as fallback');
         setUserProfile({
           userId: user.id,
           email: user.email,
@@ -134,9 +134,9 @@ export default function useMobileSync() {
         });
       }
     } catch (e) {
-      console.error('❌ Load profile error:', e.message);
+      console.error('[Error]Load profile error:', e.message);
       // Even if profile load fails, set a minimal profile so app can proceed
-      console.log('⚠️  Setting fallback profile');
+      console.log('[Warning]Setting fallback profile');
       setUserProfile({
         userId: user.id,
         email: user.email,
@@ -149,7 +149,7 @@ export default function useMobileSync() {
 
   const registerUser = useCallback(async (email, password, name) => {
     try {
-      console.log('📝 Attempting registration for:', email);
+      console.log('[Profile]Attempting registration for:', email);
       setLoading(true);
       setSyncError(null);
 
@@ -166,11 +166,11 @@ export default function useMobileSync() {
       });
 
       if (authError) {
-        console.error('❌ Registration error:', authError.message);
+        console.error('[Error]Registration error:', authError.message);
         throw authError;
       }
 
-      console.log('✅ Registration successful for:', authData.user.email);
+      console.log('[Success]Registration successful for:', authData.user.email);
 
       // Wait a moment for trigger to create profile
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -183,7 +183,7 @@ export default function useMobileSync() {
         .single();
 
       if (profileError) {
-        console.warn('⚠️  Profile not found immediately, will be created by trigger');
+        console.warn('[Warning]Profile not found immediately, will be created by trigger');
       }
 
       setIsAuthenticated(true);
@@ -195,10 +195,10 @@ export default function useMobileSync() {
         createdAt: profileData?.created_at || new Date().toISOString(),
       });
 
-      console.log('✅ Registration complete with profile loaded');
+      console.log('[Success]Registration complete with profile loaded');
       return authData.user;
     } catch (e) {
-      console.error('❌ Registration failed:', e.message);
+      console.error('[Error]Registration failed:', e.message);
       setSyncError(e.message);
       setIsAuthenticated(false);
       return null;
@@ -209,7 +209,7 @@ export default function useMobileSync() {
 
   const loginUser = useCallback(async (email, password) => {
     try {
-      console.log('🔑 Attempting login for:', email);
+      console.log('[Login]Attempting login for:', email);
       setLoading(true);
       setSyncError(null);
 
@@ -219,20 +219,20 @@ export default function useMobileSync() {
       });
 
       if (error) {
-        console.error('❌ Login error:', error.message);
+        console.error('[Error]Login error:', error.message);
         throw error;
       }
 
-      console.log('✅ Login successful for:', data.user.email);
+      console.log('[Success]Login successful for:', data.user.email);
       setIsAuthenticated(true);
 
       // IMPORTANT: Await profile loading before continuing
       await loadUserProfile(data.user);
 
-      console.log('✅ Login complete with profile loaded');
+      console.log('[Success]Login complete with profile loaded');
       return data.user;
     } catch (e) {
-      console.error('❌ Login failed:', e.message);
+      console.error('[Error]Login failed:', e.message);
       setSyncError(e.message);
       setIsAuthenticated(false);
       return null;

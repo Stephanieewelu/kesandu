@@ -194,10 +194,10 @@ export default function CloudSyncScreen({ sync }) {
 
           <View style={styles.benefitsCard}>
             <Text style={styles.benefitsTitle}>Benefits of Cloud Sync</Text>
-            <BenefitItem icon="cloud" text="Access anywhere on any device" />
-            <BenefitItem icon="refresh" text="Automatic sync when online" />
-            <BenefitItem icon="device" text="Work offline, sync later" />
-            <BenefitItem icon="Security" text="Your data is secure" />
+            <BenefitItem text="Access anywhere on any device" />
+            <BenefitItem text="Automatic sync when online" />
+            <BenefitItem text="Work offline, sync later" />
+            <BenefitItem text="Your data is secure" />
           </View>
         </View>
       </SafeAreaView>
@@ -399,10 +399,10 @@ function StatusIndicator({ status }) {
   );
 }
 
-function BenefitItem({ icon, text }) {
+function BenefitItem({ text }) {
   return (
     <View style={styles.benefitItem}>
-      <Text style={styles.benefitIcon}>{icon}</Text>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.info, marginRight: 12 }} />
       <Text style={styles.benefitText}>{text}</Text>
     </View>
   );
