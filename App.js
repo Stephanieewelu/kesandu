@@ -61,14 +61,14 @@ const TYPOGRAPHY = {
 // BOTTOM TAB BAR COMPONENT
 // ============================================
 const TAB_CONFIG = [
-  { key: 'home',              label: 'Home',      emoji: '🏠' },
-  { key: 'dashboard',         label: 'Dashboard', emoji: '📊' },
-  { key: 'interview',         label: 'Interview', emoji: '🎯' },
-  { key: 'practice',          label: 'Practice',  emoji: '💻' },
-  { key: 'portfolio',         label: 'Portfolio', emoji: '📁' },
-  { key: 'spacedRepetition',  label: 'Review',    emoji: '🧠' },
-  { key: 'codeReview',        label: 'Code Rev',  emoji: '🔍' },
-  { key: 'cloudSync',         label: 'Sync',      emoji: '☁️'  },
+  { key: 'home',              label: 'Home' },
+  { key: 'dashboard',         label: 'Dashboard' },
+  { key: 'interview',         label: 'Interview' },
+  { key: 'practice',          label: 'Practice' },
+  { key: 'portfolio',         label: 'Portfolio' },
+  { key: 'spacedRepetition',  label: 'Review' },
+  { key: 'codeReview',        label: 'Code Review' },
+  { key: 'cloudSync',         label: 'Sync' },
 ];
 
 const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
@@ -89,7 +89,6 @@ const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`Navigate to ${tab.label}`}
             >
-              <Text style={{ fontSize: 18, marginBottom: 2 }}>{tab.emoji}</Text>
               <Text
                 style={[
                   tabStyles.label,
@@ -456,19 +455,19 @@ Return JSON:
 // ACHIEVEMENTS
 // ============================================================================
 const ACHIEVEMENTS = [
-  { id: 'first-lesson', title: 'First Steps', description: 'Complete your first lesson', emoji: '🌱',
+  { id: 'first-lesson', title: 'First Steps', description: 'Complete your first lesson',
     condition: (data) => (data.completedLessons?.length || 0) >= 1 },
-  { id: 'depth-4', title: 'True Understanding', description: 'Reach depth 4 on any lesson', emoji: '🧠',
+  { id: 'depth-4', title: 'True Understanding', description: 'Reach depth 4 on any lesson',
     condition: (data) => Object.values(data.depthLevels || {}).some(d => d >= 4) },
-  { id: 'streak-7', title: 'Weekly Warrior', description: '7-day streak', emoji: '🔥',
+  { id: 'streak-7', title: 'Weekly Warrior', description: '7-day streak',
     condition: (data) => (data.streakData?.currentStreak || 0) >= 7 },
-  { id: 'five-lessons', title: 'Getting Serious', description: 'Complete 5 lessons', emoji: '⚡',
+  { id: 'five-lessons', title: 'Getting Serious', description: 'Complete 5 lessons',
     condition: (data) => (data.completedLessons?.length || 0) >= 5 },
-  { id: 'debugger', title: 'Bug Hunter', description: 'Complete a debug lesson', emoji: '🐛',
+  { id: 'debugger', title: 'Bug Hunter', description: 'Complete a debug lesson',
     condition: (data) => (data.completedLessons || []).some(id => id.startsWith('debug-')) },
-  { id: 'xp-5000', title: 'XP Hoarder', description: 'Earn 5,000 XP', emoji: '💰',
+  { id: 'xp-5000', title: 'XP Milestone', description: 'Earn 5,000 XP',
     condition: (data) => (data.totalXP || 0) >= 5000 },
-  { id: 'streak-30', title: 'Monthly Master', description: '30-day streak', emoji: '👑',
+  { id: 'streak-30', title: 'Monthly Master', description: '30-day streak',
     condition: (data) => (data.streakData?.longestStreak || 0) >= 30 },
 ];
 
@@ -853,21 +852,21 @@ const GuruJournal = ({ lessonId, onClose }) => {
     await AsyncStorage.setItem(`@journal_${lessonId}`, JSON.stringify(updated));
   };
   const typeConfig = {
-    insight: { emoji: '💡', label: 'Insight', color: COLORS.gold },
-    question: { emoji: '❓', label: 'Question', color: COLORS.info },
-    connection: { emoji: '🔗', label: 'Connection', color: COLORS.success },
+    insight: { label: 'Insight', color: COLORS.gold },
+    question: { label: 'Question', color: COLORS.info },
+    connection: { label: 'Connection', color: COLORS.success },
   };
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.text }}>📓 Guru Journal</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.text }}>Learning Journal</Text>
           <TouchableOpacity onPress={onClose}><Text style={{ fontSize: 16, color: COLORS.info, fontWeight: '600' }}>Done</Text></TouchableOpacity>
         </View>
         <View style={{ flexDirection: 'row', gap: 8, padding: 16, paddingBottom: 8 }}>
           {Object.entries(typeConfig).map(([key, config]) => (
             <TouchableOpacity key={key} style={[{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, alignItems: 'center' }, entryType === key && { borderColor: config.color, backgroundColor: config.color + '15' }]} onPress={() => setEntryType(key)}>
-              <Text style={{ fontSize: 12, color: COLORS.text, fontWeight: '600' }}>{config.emoji} {config.label}</Text>
+              <Text style={{ fontSize: 12, color: COLORS.text, fontWeight: '600' }}>{config.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -2166,14 +2165,20 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
               backgroundColor: COLORS.surface, borderRadius: 14, padding: 16, marginBottom: 10,
               borderWidth: 1, borderColor: unlocked ? COLORS.gold + '40' : COLORS.border,
               opacity: unlocked ? 1 : 0.5,
-              flexDirection: 'row', alignItems: 'center', gap: 14,
             }}>
-              <Text style={{ fontSize: 32 }}>{unlocked ? ach.emoji : '🔒'}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.text }}>{ach.title}</Text>
                 <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>{ach.description}</Text>
               </View>
-              {unlocked && <Text style={{ fontSize: 12, color: COLORS.gold, fontWeight: '600' }}>✓</Text>}
+              {unlocked && (
+                <View style={{
+                  width: 20, height: 20, borderRadius: 10,
+                  backgroundColor: COLORS.gold,
+                  alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Text style={{ fontSize: 12, color: COLORS.bg, fontWeight: '700' }}>✓</Text>
+                </View>
+              )}
             </View>
           );
         })}
@@ -2409,7 +2414,7 @@ export default function App() {
   const [editingProblem, setEditingProblem] = useState(null);
 
   // Debug logging for auth state
-  console.log('🔐 App.js - Auth State:', {
+  console.log('[Auth]App.js - Auth State:', {
     isAuthenticated: sync.isAuthenticated,
     loading: sync.loading,
     userProfile: sync.userProfile?.email || 'none'
