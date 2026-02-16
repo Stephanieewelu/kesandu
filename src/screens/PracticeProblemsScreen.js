@@ -58,6 +58,18 @@ export default function PracticeProblemsScreen({ userProfile }) {
     handleGenerateProblem();
   };
 
+  // Loading State - show while generating problem
+  if (practice.loading && !practice.currentProblem) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.info} />
+          <Text style={styles.loadingText}>Generating your problem...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Role Selector
   if (showRoleSelector && !practice.currentProblem) {
     return (
@@ -99,7 +111,6 @@ export default function PracticeProblemsScreen({ userProfile }) {
                     ]}
                     onPress={() => setSelectedProblemType(key)}
                   >
-                    <Text style={styles.typeEmoji}>{type.emoji}</Text>
                     <Text style={styles.typeName}>{type.name}</Text>
                   </TouchableOpacity>
                 ))}
@@ -131,10 +142,10 @@ export default function PracticeProblemsScreen({ userProfile }) {
 
           <View style={styles.footer}>
             <TouchableOpacity style={styles.startButton} onPress={handleGenerateProblem}>
-              <Text style={styles.startButtonText}>Target Start Problem</Text>
+              <Text style={styles.startButtonText}>Start Problem</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.statsButton} onPress={() => setShowStats(true)}>
-              <Text style={styles.statsButtonText}>Statistics My Stats</Text>
+              <Text style={styles.statsButtonText}>My Stats</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -149,7 +160,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.statsScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>Statistics Your Stats</Text>
+            <Text style={styles.title}>Your Statistics</Text>
           </View>
 
           {stats.totalAttempts === 0 ? (
@@ -224,7 +235,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
                 <Text style={styles.problemTitle}>{practice.currentProblem.title}</Text>
                 <View style={styles.diffBadge}>
                   <Text style={styles.diffBadgeText}>
-                    {practice.PROBLEM_TYPES[practice.currentProblem.problemType].emoji} {practice.currentProblem.difficulty}
+                    {practice.PROBLEM_TYPES[practice.currentProblem.problemType].name} • {practice.currentProblem.difficulty}
                   </Text>
                 </View>
               </View>
@@ -256,7 +267,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
             {/* Hints */}
             {practice.currentProblem.hints && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Tip: Hints</Text>
+                <Text style={styles.sectionTitle}>Hints</Text>
                 {practice.currentProblem.hints.map((hint, idx) => (
                   <View key={idx} style={styles.hintCard}>
                     <Text style={styles.hintLabel}>Hint {idx + 1}</Text>
@@ -302,7 +313,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.evaluationScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <Text style={styles.title}>List Evaluation</Text>
+            <Text style={styles.title}>Evaluation</Text>
           </View>
 
           {/* Score */}
@@ -315,7 +326,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
           {/* Strengths */}
           {eval_.strengths && eval_.strengths.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>Check Strengths</Text>
+              <Text style={[styles.sectionTitle, { color: COLORS.success }]}>Strengths</Text>
               {eval_.strengths.map((strength, idx) => (
                 <View key={idx} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
@@ -328,7 +339,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
           {/* Weaknesses */}
           {eval_.weaknesses && eval_.weaknesses.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>Warning Weaknesses</Text>
+              <Text style={[styles.sectionTitle, { color: COLORS.warning }]}>Areas for Improvement</Text>
               {eval_.weaknesses.map((weakness, idx) => (
                 <View key={idx} style={styles.listItem}>
                   <Text style={styles.bullet}>•</Text>
@@ -341,7 +352,7 @@ export default function PracticeProblemsScreen({ userProfile }) {
           {/* Improvements */}
           {eval_.improvements && eval_.improvements.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Growth Improvements</Text>
+              <Text style={styles.sectionTitle}>Recommendations</Text>
               {eval_.improvements.map((improvement, idx) => (
                 <View key={idx} style={styles.improvementCard}>
                   <Text style={styles.improvementText}>{improvement}</Text>
@@ -825,5 +836,16 @@ const styles = StyleSheet.create({
     color: COLORS.bg,
     fontSize: 16,
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+  },
+  loadingText: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    marginTop: 16,
   },
 });
