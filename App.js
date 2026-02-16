@@ -19,6 +19,10 @@ import CodeReviewScreen from './src/screens/CodeReviewScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import EditProblemScreen from './src/screens/EditProblemScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import ProjectGalleryScreen from './src/screens/ProjectGalleryScreen';
+import InterviewBankScreen from './src/screens/InterviewBankScreen';
+import CodeQualityChallengesScreen from './src/screens/CodeQualityChallengesScreen';
+import AIPlaygroundScreen from './src/screens/AIPlaygroundScreen';
 import useMobileSync from './src/hooks/useMobileSyncSupabase';
 import {
   Home as HomeIcon,
@@ -69,6 +73,10 @@ const TAB_CONFIG = [
   { key: 'spacedRepetition',  label: 'Review' },
   { key: 'codeReview',        label: 'Code Review' },
   { key: 'cloudSync',         label: 'Sync' },
+  { key: 'projectGallery',    label: 'Projects' },
+  { key: 'interviewBank',     label: 'Interview Bank' },
+  { key: 'codeQuality',       label: 'Code Challenges' },
+  { key: 'aiPlayground',      label: 'AI Lab' },
 ];
 
 const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
@@ -2489,6 +2497,14 @@ export default function App() {
         return <CodeReviewScreen />;
       case 'cloudSync':
         return <CloudSyncScreen sync={sync} />;
+      case 'projectGallery':
+        return <ProjectGalleryScreen />;
+      case 'interviewBank':
+        return <InterviewBankScreen />;
+      case 'codeQuality':
+        return <CodeQualityChallengesScreen />;
+      case 'aiPlayground':
+        return <AIPlaygroundScreen />;
       case 'dashboard':
         return (
           <DashboardScreen
