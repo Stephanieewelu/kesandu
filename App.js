@@ -23,6 +23,10 @@ import ProjectGalleryScreen from './src/screens/ProjectGalleryScreen';
 import InterviewBankScreen from './src/screens/InterviewBankScreen';
 import CodeQualityChallengesScreen from './src/screens/CodeQualityChallengesScreen';
 import AIPlaygroundScreen from './src/screens/AIPlaygroundScreen';
+import IndustryCaseStudiesScreen from './src/screens/IndustryCaseStudiesScreen';
+import ARSystemDesignScreen from './src/screens/ARSystemDesignScreen';
+import AIPairProgrammingScreen from './src/screens/AIPairProgrammingScreen';
+import StudyMaterialsScreen from './src/screens/StudyMaterialsScreen';
 import useMobileSync from './src/hooks/useMobileSyncSupabase';
 import {
   Home as HomeIcon,
@@ -77,6 +81,10 @@ const TAB_CONFIG = [
   { key: 'interviewBank',     label: 'Interview Bank' },
   { key: 'codeQuality',       label: 'Code Challenges' },
   { key: 'aiPlayground',      label: 'AI Lab' },
+  { key: 'caseStudies',       label: 'Case Studies' },
+  { key: 'systemDesign',      label: 'System Design' },
+  { key: 'pairProgramming',   label: 'Pair Programming' },
+  { key: 'studyMaterials',    label: 'Study Materials' },
 ];
 
 const BottomTabBar = ({ currentScreen, onChangeScreen }) => {
@@ -2505,6 +2513,14 @@ export default function App() {
         return <CodeQualityChallengesScreen />;
       case 'aiPlayground':
         return <AIPlaygroundScreen />;
+      case 'caseStudies':
+        return <IndustryCaseStudiesScreen />;
+      case 'systemDesign':
+        return <ARSystemDesignScreen />;
+      case 'pairProgramming':
+        return <AIPairProgrammingScreen />;
+      case 'studyMaterials':
+        return <StudyMaterialsScreen />;
       case 'dashboard':
         return (
           <DashboardScreen
