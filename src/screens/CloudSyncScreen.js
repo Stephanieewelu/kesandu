@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView,
   TextInput, Modal, Alert, ActivityIndicator
 } from 'react-native';
-import useMobileSync from '../hooks/useMobileSyncSupabase';
 import PasswordResetScreen from './PasswordResetScreen';
 
 
@@ -22,8 +21,7 @@ const COLORS = {
   danger: '#EF4444',
 };
 
-export default function CloudSyncScreen() {
-  const sync = useMobileSync();
+export default function CloudSyncScreen({ sync }) {
   const [showLoginModal, setShowLoginModal] = useState(!sync.isAuthenticated);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [email, setEmail] = useState('');

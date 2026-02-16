@@ -149,6 +149,7 @@ export default function useMobileSync() {
 
   const registerUser = useCallback(async (email, password, name) => {
     try {
+      console.log('📝 Attempting registration for:', email);
       setLoading(true);
       setSyncError(null);
 
@@ -164,7 +165,12 @@ export default function useMobileSync() {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error('❌ Registration error:', authError.message);
+        throw authError;
+      }
+
+      console.log('✅ Registration successful for:', authData.user.email);
 
       // Wait a moment for trigger to create profile
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -177,7 +183,7 @@ export default function useMobileSync() {
         .single();
 
       if (profileError) {
-        console.warn('Profile not found immediately, will be created by trigger');
+        console.warn('⚠️  Profile not found immediately, will be created by trigger');
       }
 
       setIsAuthenticated(true);
@@ -189,10 +195,12 @@ export default function useMobileSync() {
         createdAt: profileData?.created_at || new Date().toISOString(),
       });
 
+      console.log('✅ Registration complete with profile loaded');
       return authData.user;
     } catch (e) {
+      console.error('❌ Registration failed:', e.message);
       setSyncError(e.message);
-      console.error('Registration error:', e);
+      setIsAuthenticated(false);
       return null;
     } finally {
       setLoading(false);
@@ -201,20 +209,32 @@ export default function useMobileSync() {
 
   const loginUser = useCallback(async (email, password) => {
     try {
+      console.log('🔑 Attempting login for:', email);
       setLoading(true);
+      setSyncError(null);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Login error:', error.message);
+        throw error;
+      }
 
+      console.log('✅ Login successful for:', data.user.email);
       setIsAuthenticated(true);
-      loadUserProfile(data.user);
+
+      // IMPORTANT: Await profile loading before continuing
+      await loadUserProfile(data.user);
+
+      console.log('✅ Login complete with profile loaded');
       return data.user;
     } catch (e) {
+      console.error('❌ Login failed:', e.message);
       setSyncError(e.message);
+      setIsAuthenticated(false);
       return null;
     } finally {
       setLoading(false);

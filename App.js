@@ -2408,6 +2408,13 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home'); // home, settings
   const [editingProblem, setEditingProblem] = useState(null);
 
+  // Debug logging for auth state
+  console.log('🔐 App.js - Auth State:', {
+    isAuthenticated: sync.isAuthenticated,
+    loading: sync.loading,
+    userProfile: sync.userProfile?.email || 'none'
+  });
+
   // Show loading while checking auth
   if (sync.loading || !userData.loaded) {
     return (
@@ -2422,7 +2429,7 @@ export default function App() {
 
   // Show CloudSync (login/signup) if not authenticated
   if (!sync.isAuthenticated) {
-    return <CloudSyncScreen />;
+    return <CloudSyncScreen sync={sync} />;
   }
 
   // Handle lesson dialog
@@ -2476,7 +2483,7 @@ export default function App() {
       case 'codeReview':
         return <CodeReviewScreen />;
       case 'cloudSync':
-        return <CloudSyncScreen />;
+        return <CloudSyncScreen sync={sync} />;
       case 'dashboard':
         return (
           <DashboardScreen
