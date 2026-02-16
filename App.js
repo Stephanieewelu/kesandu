@@ -27,6 +27,9 @@ import IndustryCaseStudiesScreen from './src/screens/IndustryCaseStudiesScreen';
 import ARSystemDesignScreen from './src/screens/ARSystemDesignScreen';
 import AIPairProgrammingScreen from './src/screens/AIPairProgrammingScreen';
 import StudyMaterialsScreen from './src/screens/StudyMaterialsScreen';
+import KesanduLabsScreen from './src/screens/KesanduLabsScreen';
+import InventChallengesScreen from './src/screens/InventChallengesScreen';
+import ResearchPapersScreen from './src/screens/ResearchPapersScreen';
 import useMobileSync from './src/hooks/useMobileSyncSupabase';
 import {
   Home as HomeIcon,
@@ -2210,6 +2213,25 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={() => (
         <View>
+          {/* Header */}
+          <View style={styles.homeHeader}>
+            <View>
+              <Text style={styles.homeTitle}>Kesandu</Text>
+              <Text style={styles.homeSubtitle}>Birth of a Guru</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.xpBadge}
+                onPress={() => onNavigateToDashboard?.()}
+              >
+                <Text style={styles.xpText}>📊</Text>
+              </TouchableOpacity>
+              <View style={styles.xpBadge}>
+                <Text style={styles.xpText}>{userData.totalXP || 0} XP</Text>
+              </View>
+            </View>
+          </View>
+
           {/* Mastery Score */}
           <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
             <View style={{
@@ -2343,25 +2365,6 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
           <YouTubePlayerComponent videoId={activeVideoId} onClose={() => setActiveVideoId(null)} />
         )}
 
-        {/* Header */}
-        <View style={styles.homeHeader}>
-        <View>
-          <Text style={styles.homeTitle}>Kesandu</Text>
-          <Text style={styles.homeSubtitle}>Birth of a Guru</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity
-            style={styles.xpBadge}
-            onPress={() => onNavigateToDashboard?.()}
-          >
-            <Text style={styles.xpText}>📊</Text>
-          </TouchableOpacity>
-          <View style={styles.xpBadge}>
-            <Text style={styles.xpText}>{userData.totalXP || 0} XP</Text>
-          </View>
-        </View>
-      </View>
-
           {/* Tab Content */}
           {activeTab === 'home' && renderHomeTab()}
           {activeTab === 'challenges' && renderChallengesTab()}
@@ -2372,6 +2375,9 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
           {activeTab === 'spaced' && <SpacedRepetitionScreen />}
           {activeTab === 'code' && <CodeReviewScreen />}
           {activeTab === 'sync' && <CloudSyncScreen />}
+          {activeTab === 'labs' && <KesanduLabsScreen />}
+          {activeTab === 'invent' && <InventChallengesScreen />}
+          {activeTab === 'papers' && <ResearchPapersScreen />}
         </View>
 
         {/* Bottom Tab Bar */}
@@ -2391,6 +2397,9 @@ const HomeScreen = ({ userData, userProfile, onSelectLesson, onNavigateToDashboa
             { id: 'spaced', label: 'Review' },
             { id: 'code', label: 'Code' },
             { id: 'sync', label: 'Sync' },
+            { id: 'labs', label: '🧪 Labs' },
+            { id: 'invent', label: '💡 Invent' },
+            { id: 'papers', label: '📄 Papers' },
             { id: 'challenges', label: 'Challenges' },
             { id: 'achievements', label: 'Badges' },
           ].map(tab => (
